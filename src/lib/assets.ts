@@ -1,0 +1,16 @@
+export const ASSETS = {
+  logo: "/images/logo.png",
+  logoLogin: "/images/logo-login.png",
+  logoLanding: "/images/logo-landing.png",
+  logoComplete: "/images/logo-complete.png",
+  arrowRight: "/images/arrow-right.svg",
+  iconBell: "/images/icon-bell.png",
+  iconLocationPin: "/images/icon-location-pin.png",
+  iconShare: "/images/icon-share.svg",
+  iconCalendarSmall: "/images/icon-calendar-small.svg",
+  tabHome: "/images/tab-home.png",
+  tabJobs: "/images/tab-jobs.png",
+  tabLearning: "/images/tab-learning.png",
+  tabCalendar: "/images/tab-calendar.png",
+  tabMy: "/images/tab-my.png",
+} as const;

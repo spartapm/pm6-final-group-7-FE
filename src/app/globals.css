@@ -1,0 +1,139 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #5b6dbf;
+  --color-primary-light: #7c8ce4;
+  --color-primary-lighter: #9ba9ec;
+  --color-primary-accent: #7583e2;
+  --color-primary-deep: #6d5dd3;
+  --color-text-primary: #101828;
+  --color-text-secondary: #374151;
+  --color-text-muted: #9ca0ac;
+  --color-text-tab-inactive: #aeb2bc;
+  --color-text-subtle: #e6e9fa;
+  --color-text-on-primary: #ffffff;
+  --color-deadline-urgent: #dc2626;
+  --color-deadline-normal: #4b5563;
+  --color-category-education: #be4574;
+  --color-banner-cta: #8b5cf6;
+  --radius-card: 16px;
+  --radius-button: 16px;
+  --font-sans: "Pretendard", ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+:root {
+  --bottom-tab-nav-content: 4.375rem;
+  --bottom-tab-nav-offset: calc(var(--bottom-tab-nav-content) + env(safe-area-inset-bottom, 0px));
+  --activity-action-bar-height: 6.5625rem;
+}
+
+.app-main-with-tab-nav {
+  min-height: 100dvh;
+  padding-bottom: var(--bottom-tab-nav-offset);
+}
+
+.activity-action-bar {
+  bottom: var(--bottom-tab-nav-offset);
+  z-index: 30;
+}
+
+body {
+  background: #d4d4d8;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  margin: 0;
+}
+
+.mobile-shell {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #fff;
+  position: relative;
+  overflow-x: hidden;
+}
+
+@media (min-width: 391px) {
+  .mobile-shell {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 12px 48px rgba(0,0,0,0.12);
+  }
+}
+
+.gradient-header {
+  background: linear-gradient(180deg, #5b6dbf 0%, #7c8ce4 55%, #9ba9ec 100%);
+}
+
+.gradient-landing {
+  background: linear-gradient(160deg, #5b6dbf 0%, #7c8ce4 55%, #9ba9ec 100%);
+}
+
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  padding: 1rem;
+}
+
+.mobile-bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.mobile-bottom-sheet-panel {
+  width: 100%;
+  max-width: 390px;
+  max-height: min(85dvh, calc(100dvh - 1rem));
+  overflow: hidden;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: #fff;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-bottom-sheet-body {
+  max-height: calc(min(85dvh, 100dvh - 1rem) - 5.5rem);
+  overflow-y: auto;
+  padding: 0 1.25rem 1.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-toast-container {
+  position: fixed;
+  bottom: calc(var(--bottom-tab-nav-offset) + 1rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: 100%;
+  max-width: 390px;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin 1s linear infinite; }
+
+html[data-font-size="small"] { font-size: 14px; }
+html[data-font-size="default"] { font-size: 16px; }
+html[data-font-size="large"] { font-size: 18px; }
+html[data-font-size="xlarge"] { font-size: 20px; }
+
+/* 바텀 탭: 비활성 #b7b6c2, 활성 #7583e2 (2번 아이콘 기준) */
+.tab-nav-icon-inactive {
+  filter: brightness(0) saturate(100%) invert(78%) sepia(6%) saturate(350%) hue-rotate(202deg);
+}
+
+.tab-nav-icon-active {
+  filter: brightness(0) saturate(100%) invert(54%) sepia(28%) saturate(1120%) hue-rotate(210deg) brightness(96%);
+}
