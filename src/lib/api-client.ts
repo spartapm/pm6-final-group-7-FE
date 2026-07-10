@@ -23,6 +23,20 @@ async function getAccessToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+function shouldRetryResponse(response: Response): boolean {
+  if (response.status === 502 || response.status === 503) return true;
+  // Render free tier cold start: text/plain "Not Found" (x-render-routing: no-server)
+  if (response.status === 404) {
+    const type = response.headers.get("content-type") ?? "";
+    return type.includes("text/plain");
+  }
+  return false;
+}
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getAccessToken();
   const hasBody = options.body !== undefined && options.body !== null;
@@ -32,7 +46,12 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   };
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const url = `${API_BASE_URL}${path}`;
+  let response = await fetch(url, { ...options, headers });
+  for (let attempt = 0; attempt < 2 && shouldRetryResponse(response); attempt += 1) {
+    await sleep(1500 * (attempt + 1));
+    response = await fetch(url, { ...options, headers });
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
