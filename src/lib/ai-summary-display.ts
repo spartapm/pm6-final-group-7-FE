@@ -9,14 +9,14 @@ export const AI_SUMMARY_LABELS: Record<ActivityCategory, string> = {
 
 const EMPTY_SUMMARY = "요약 정보가 아직 없어요.";
 
+// S-02: 정상 문장에 흔한 쉼표/시각만으로 stale 판정하던 로직을 완화(매번 재생성 방지).
+// 원천 데이터를 그대로 붙여넣은 요약(불릿/키-값 나열 등)만 stale로 간주한다.
 export function isStaleAiSummary(summary: string | null | undefined): boolean {
   const s = summary?.trim();
   if (!s) return true;
   if (s.startsWith("-")) return true;
   if ((s.match(/\s-\s/g) ?? []).length >= 2) return true;
-  if (s.length > 85 && s.split(/[.!?。]/).filter(Boolean).length < 2) return true;
-  if ((s.match(/[,，]/g) ?? []).length >= 1) return true;
-  if (/\d{1,2}:\d{2}/.test(s)) return true;
+  if (s.length > 120 && s.split(/[.!?。]/).filter(Boolean).length < 2) return true;
   if (/\/\s*\d|시급\s*\//.test(s)) return true;
   return false;
 }
@@ -76,7 +76,8 @@ export function buildSummaryLead(
 
   if (activity.category === "job") {
     const info = onboarding.important_job_info ?? {};
-    if (typeof info.salary === "string" && info.salary) parts.push(info.salary);
+    // 온보딩 급여 응답은 salary_level 키로 저장됨 (HM-D)
+    if (typeof info.salary_level === "string" && info.salary_level) parts.push(String(info.salary_level));
     if (typeof attrs.salary === "string" && attrs.salary) parts.push(String(attrs.salary));
     if (typeof attrs.work_type === "string" && attrs.work_type) parts.push(String(attrs.work_type));
   }
@@ -86,7 +87,8 @@ export function buildSummaryLead(
       activity.category === "education"
         ? onboarding.important_learning_info
         : onboarding.important_hobby_info;
-    if (typeof info?.cost === "string" && info.cost) parts.push(info.cost);
+    // 온보딩 비용 응답은 cost_type 키로 저장됨 (HM-D)
+    if (typeof info?.cost_type === "string" && info.cost_type) parts.push(String(info.cost_type));
     if (typeof attrs.cost === "string" && attrs.cost) parts.push(String(attrs.cost));
   }
 

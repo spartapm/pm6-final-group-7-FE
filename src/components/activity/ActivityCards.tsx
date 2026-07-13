@@ -16,6 +16,12 @@ interface Props {
   onBookmark?: () => void;
 }
 
+// UI-04: 글자수 규칙(제목 28자·추천이유 25자, 초과 시 말줄임)
+function truncateChars(text: string, max: number): string {
+  const t = text.trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
 function ReasonBox({ reasons }: { reasons: string[] }) {
   if (reasons.length === 0) return null;
   return (
@@ -23,7 +29,7 @@ function ReasonBox({ reasons }: { reasons: string[] }) {
       <p className="text-base font-bold text-primary-deep">추천이유</p>
       {reasons.map((r) => (
         <p key={r} className="mt-1 text-base font-semibold text-[#1f2937]">
-          {r}
+          {truncateChars(r, 25)}
         </p>
       ))}
     </div>
@@ -52,11 +58,11 @@ export function RecommendationCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <h3
-            className={`flex-1 text-[19px] font-extrabold ${
+            className={`line-clamp-2 flex-1 text-[18px] font-bold leading-snug ${
               isExpired ? "text-[#b4b4be]" : "text-text-primary"
             }`}
           >
-            {activity.title}
+            {truncateChars(activity.title, 28)}
           </h3>
           <div className="flex shrink-0 items-start gap-2">
             {onBookmark && !isExpired && (
@@ -116,16 +122,12 @@ export function ActivityListCard({ activity }: { activity: Activity }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <span
-            className={`text-xs font-bold ${
-              activity.category === "education"
-                ? "text-category-education"
-                : "text-primary-deep"
-            }`}
-          >
+          <span className="text-xs font-bold text-primary-deep">
             {CATEGORY_LABELS[activity.category]}
           </span>
-          <h3 className="mt-1 text-base font-bold text-text-primary">{activity.title}</h3>
+          <h3 className="mt-1 line-clamp-2 text-base font-bold text-text-primary">
+            {truncateChars(activity.title, 28)}
+          </h3>
           <p className="mt-1 text-sm text-text-muted">
             {activity.org_name}
             {activity.region_district ? ` · 서울 ${activity.region_district}` : ""}
@@ -187,11 +189,11 @@ export function LearningListCard({
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <h3
-            className={`flex-1 text-[18px] font-bold leading-snug ${
+            className={`line-clamp-2 flex-1 text-[18px] font-bold leading-snug ${
               isExpired ? "text-[#b7bac3]" : "text-[#111318]"
             }`}
           >
-            {activity.title}
+            {truncateChars(activity.title, 28)}
           </h3>
           <div className="flex shrink-0 items-start gap-2">
             {onBookmark && !isExpired && (

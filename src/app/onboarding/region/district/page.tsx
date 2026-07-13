@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import { OnboardingNextButton, RegionNoticeBanner } from "@/components/onboarding/OnboardingRegionUI";
 import { apiFetch } from "@/lib/api-client";
 import { SEOUL_DISTRICTS } from "@/lib/onboarding";
+import type { MeResponse } from "@/lib/types";
 
 /** SCR-002 구 선택 (Figma 1039:307) — 서울 선택 후 */
 export default function OnboardingDistrictPage() {
   const router = useRouter();
   const [district, setDistrict] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<MeResponse>("/me"),
+  });
+
+  useEffect(() => {
+    if (me?.onboarding?.region_district) setDistrict(me.onboarding.region_district);
+  }, [me]);
 
   async function handleNext() {
     if (!district) return;

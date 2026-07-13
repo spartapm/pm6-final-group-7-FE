@@ -93,9 +93,17 @@ export function LearningDetailView({
               />
             </svg>
           </button>
-          <h1 className="min-w-0 flex-1 truncate text-[14px] font-bold text-[#1e2939]">
+          <h1 className="min-w-0 flex-1 truncate text-[20px] font-bold text-[#1e2939]">
             {activity.title}
           </h1>
+          <button
+            type="button"
+            aria-label="공유"
+            onClick={onShare}
+            className="rounded-2xl border border-[#e5e7eb] p-3"
+          >
+            <Image src={ASSETS.iconShare} alt="" width={20} height={20} />
+          </button>
         </div>
       </header>
 
@@ -216,7 +224,7 @@ export function LearningDetailView({
           type="button"
           disabled={loading || isExpired}
           onClick={onBookmark}
-          className={`flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-xl ${
+          className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-2xl ${
             activity.bookmarked ? "text-red-500" : "text-[#9aa0a8]"
           }`}
           style={{
@@ -228,49 +236,12 @@ export function LearningDetailView({
         </button>
         <button
           type="button"
-          aria-label="공유"
-          onClick={onShare}
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-[#9aa0a8]"
-          style={{ borderColor: "#e5e7eb" }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-            <circle cx="14.5" cy="4.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-            <circle cx="5.5" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-            <circle cx="14.5" cy="15.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-            <path
-              d="M7.6 8.7 12.4 6.3M7.6 11.3 12.4 13.7"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
           disabled={isExpired}
           onClick={onApply}
-          aria-label="외부 링크"
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] disabled:opacity-50"
-          style={{ borderColor: theme.accentBorder }}
+          className="flex h-[52px] flex-1 items-center justify-center rounded-2xl text-[16px] font-black text-white disabled:bg-gray-300"
+          style={{ backgroundColor: isExpired ? undefined : theme.accent }}
         >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-            <path
-              d="M11 3h6v6M17 3 9 11M8 5H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3"
-              stroke={theme.accent}
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          disabled={isExpired || activity.applied}
-          onClick={onApply}
-          className="flex h-[46px] flex-1 items-center justify-center rounded-2xl text-[16px] font-black text-white disabled:bg-gray-300"
-          style={{ backgroundColor: isExpired || activity.applied ? undefined : theme.accent }}
-        >
-          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "신청하기"}
+          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "신청하러 가기"}
         </button>
       </div>
     </div>

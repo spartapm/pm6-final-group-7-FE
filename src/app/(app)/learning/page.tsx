@@ -6,7 +6,6 @@ import { LearningListCard } from "@/components/activity/ActivityCards";
 import { ActivityFilterBar } from "@/components/list/ActivityFilterBar";
 import { ListCategoryTabs } from "@/components/list/ListCategoryTabs";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useActivityActions } from "@/hooks/useActivityActions";
 import { apiFetch } from "@/lib/api-client";
 import { createEmptyFilters } from "@/lib/jobs-filters";
 import {
@@ -27,7 +26,6 @@ export default function LearningPage() {
     createEmptyFilters(EDUCATION_TAB_FILTERS)
   );
   const [hobbyFilters, setHobbyFilters] = useState(() => createEmptyFilters(HOBBY_TAB_FILTERS));
-  const { toggleBookmark, loading: bookmarkLoading, LikeDialog } = useActivityActions();
 
   const activeFilterDefs = category === "education" ? EDUCATION_TAB_FILTERS : HOBBY_TAB_FILTERS;
   const activeFilters = category === "education" ? educationFilters : hobbyFilters;
@@ -42,7 +40,7 @@ export default function LearningPage() {
     return filterLearningActivities(data.items, activeFilters);
   }, [data?.items, activeFilters]);
 
-  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+  const hasActiveFilters = Object.values(activeFilters).some((arr) => arr.length > 0);
   const emptyFromFilter = (data?.items?.length ?? 0) > 0 && filteredItems.length === 0;
 
   function handleCategoryChange(next: string) {
@@ -55,7 +53,7 @@ export default function LearningPage() {
     setCategory(nextCategory);
   }
 
-  function handleFilterChange(id: string, value: string) {
+  function handleFilterChange(id: string, value: string[]) {
     if (category === "education") {
       setEducationFilters((prev) => ({ ...prev, [id]: value }));
     } else {
@@ -82,7 +80,6 @@ export default function LearningPage() {
 
   return (
     <div className="min-h-full bg-[#f8f9fc] pb-4">
-      {LikeDialog}
       <header className="bg-white px-6 pb-1 pt-6">
         <h1 className="text-[22px] font-bold text-[#1c1c27]">교육 · 취미활동</h1>
       </header>
@@ -111,8 +108,6 @@ export default function LearningPage() {
             key={activity.id}
             activity={activity}
             bookmarked={activity.bookmarked}
-            bookmarkLoading={bookmarkLoading}
-            onBookmark={() => toggleBookmark(activity.id)}
           />
         ))}
       </div>

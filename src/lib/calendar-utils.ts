@@ -51,6 +51,8 @@ export function filterCalendarItems(
     selectedDate?: string | null;
     category?: string;
     appliedOnly?: boolean;
+    /** 정책1: 상시접수(마감일 없음) 항목을 리스트에 포함. 캘린더 점 계산에는 사용하지 않음 */
+    includeAlwaysOpen?: boolean;
   }
 ): CalendarItem[] {
   let filtered = items;
@@ -65,7 +67,10 @@ export function filterCalendarItems(
 
   filtered = filtered.filter((item) => {
     const date = getCalendarDate(item.activity);
-    if (!date) return false;
+    if (!date) {
+      // 정책1: 특정 날짜 선택이 아닐 때만 상시접수 항목을 리스트에 노출
+      return Boolean(options.includeAlwaysOpen) && !options.selectedDate;
+    }
     const d = parseISO(date);
     if (options.selectedDate) {
       return format(d, "yyyy-MM-dd") === options.selectedDate;
@@ -108,6 +113,38 @@ export function getMonthGridDays(month: Date): Date[] {
   const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
   const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
   return eachDayOfInterval({ start, end });
+}
+
+/**
+ * 홈 "다가오는 내 일정": 신청완료(applied)한 항목만, 오늘부터 N일 이내, 최대 maxCount개.
+ * (HM-B) 찜만 한 항목은 제외.
+ */
+export function getUpcomingAppliedItems(
+  items: CalendarItem[],
+  options?: { withinDays?: number; maxCount?: number }
+): CalendarItem[] {
+  const withinDays = options?.withinDays ?? 7;
+  const maxCount = options?.maxCount ?? 3;
+  const today = startOfDay(new Date());
+  const limit = new Date(today);
+  limit.setDate(limit.getDate() + withinDays);
+
+  return items
+    .filter((item) => item.applied)
+    .map((item) => {
+      const dateStr = getCalendarDate(item.activity);
+      if (!dateStr) return null;
+      return { item, date: parseISO(dateStr) };
+    })
+    .filter(Boolean)
+    .filter((entry) => {
+      const { date } = entry as { item: CalendarItem; date: Date };
+      const notPast = !isBefore(date, today) || isSameDay(date, today);
+      return notPast && !isBefore(limit, date);
+    })
+    .sort((a, b) => (a as { date: Date }).date.getTime() - (b as { date: Date }).date.getTime())
+    .slice(0, maxCount)
+    .map((entry) => (entry as { item: CalendarItem }).item);
 }
 
 export function getNearestUpcomingItem(items: CalendarItem[]): CalendarItem | null {

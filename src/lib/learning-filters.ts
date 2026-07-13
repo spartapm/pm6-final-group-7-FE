@@ -1,9 +1,10 @@
 import { SEOUL_DISTRICTS } from "@/lib/onboarding";
 import type { Activity } from "@/lib/types";
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { matchesApplyStatus } from "@/lib/jobs-filters";
 import type { FilterDefinition } from "@/lib/jobs-filters";
 
-export type LearningFilterValues = Record<string, string>;
+/** 그룹별 다중 선택 배열 (list=체크 다중, chips=라디오 단일 0~1개) */
+export type LearningFilterValues = Record<string, string[]>;
 
 const REGION_OPTIONS = [{ value: "", label: "전체" }, ...SEOUL_DISTRICTS.map((d) => ({ value: d, label: d }))];
 
@@ -20,6 +21,7 @@ const RECRUIT_CHIP_OPTIONS = [
   { value: "상시접수", label: "상시접수" },
 ];
 
+// FL-03: 분야 값은 ingestion 분류기(LifelongField) 출력과 일치시켜 실제 매칭 보장
 export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
   {
     id: "field",
@@ -28,10 +30,9 @@ export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
     options: [
       { value: "", label: "전체" },
       { value: "디지털·AI", label: "디지털·AI" },
-      { value: "직업역량", label: "직업역량" },
-      { value: "자격증", label: "자격증" },
-      { value: "노후설계", label: "노후설계" },
-      { value: "생활교양", label: "생활교양" },
+      { value: "직업·자격", label: "직업·자격" },
+      { value: "언어·문해", label: "언어·문해" },
+      { value: "생활·교양", label: "생활·교양" },
     ],
   },
   {
@@ -71,12 +72,12 @@ export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
     layout: "list",
     options: [
       { value: "", label: "전체" },
-      { value: "미술·공예", label: "미술·공예" },
       { value: "운동·건강", label: "운동·건강" },
+      { value: "미술·공예", label: "미술·공예" },
       { value: "음악·공연", label: "음악·공연" },
       { value: "여행·나들이", label: "여행·나들이" },
-      { value: "봉사나눔", label: "봉사나눔" },
-      { value: "사진영상", label: "사진영상" },
+      { value: "봉사·나눔", label: "봉사·나눔" },
+      { value: "사진·영상", label: "사진·영상" },
     ],
   },
   {
@@ -104,16 +105,6 @@ function attr(activity: Activity, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-function getRecruitStatus(activity: Activity): string {
-  if (!activity.apply_end) return "상시접수";
-  const start = activity.apply_start ? parseISO(activity.apply_start) : null;
-  const end = parseISO(activity.apply_end);
-  const today = new Date();
-  if (start && differenceInCalendarDays(start, today) > 0) return "모집예정";
-  if (differenceInCalendarDays(end, today) >= 0) return "모집중";
-  return "마감";
-}
-
 function matchCost(activity: Activity, value: string): boolean {
   const cost = attr(activity, "cost");
   if (!cost) return true;
@@ -128,27 +119,32 @@ function matchLearningField(activity: Activity, value: string): boolean {
   return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
 }
 
+/** 그룹 내 OR: 선택 값 중 하나라도 만족하면 통과. 미선택이면 통과. */
+function groupMatch(selected: string[] | undefined, matcher: (value: string) => boolean): boolean {
+  if (!selected || selected.length === 0) return true;
+  return selected.some((v) => matcher(v));
+}
+
 export function filterLearningActivities(
   items: Activity[],
   filters: LearningFilterValues
 ): Activity[] {
   return items.filter((activity) => {
-    const field = filters.field ?? "";
-    if (field && !matchLearningField(activity, field)) return false;
+    if (!groupMatch(filters.field, (v) => matchLearningField(activity, v))) return false;
 
-    const region = filters.region ?? "";
-    if (region && activity.region_district !== region) return false;
+    if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;
 
-    const classType = filters.classType ?? "";
-    if (classType && attr(activity, "class_type") && attr(activity, "class_type") !== classType) {
+    if (
+      !groupMatch(filters.classType, (v) => {
+        const ct = attr(activity, "class_type");
+        return !ct || ct === v;
+      })
+    )
       return false;
-    }
 
-    const cost = filters.cost ?? "";
-    if (cost && !matchCost(activity, cost)) return false;
+    if (!groupMatch(filters.cost, (v) => matchCost(activity, v))) return false;
 
-    const recruitStatus = filters.recruitStatus ?? "";
-    if (recruitStatus && getRecruitStatus(activity) !== recruitStatus) return false;
+    if (!groupMatch(filters.recruitStatus, (v) => matchesApplyStatus(activity, v))) return false;
 
     return true;
   });

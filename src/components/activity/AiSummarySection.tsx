@@ -115,20 +115,13 @@ function DefaultSection({
 
 export function AiSummarySection({
   activity,
-  variant = "job",
   bodyClass,
 }: AiSummarySectionProps) {
   const { summary, loading, error } = useAiSummary(activity);
   const label = getAiSummaryLabel(activity.category);
 
-  const headerStyles =
-    variant === "support"
-      ? { header: "bg-[#dcfce7]", title: "text-[#15803d]" }
-      : variant === "learning"
-        ? activity.category === "hobby"
-          ? { header: "bg-[#fff7ed]", title: "text-[#c2410c]" }
-          : { header: "bg-[#ede9fe]", title: "text-[#6d28d9]" }
-        : { header: "bg-[#dbeafe]", title: "text-[#1d4ed8]" };
+  // UI-01: 변형별 색상 대신 단일 브랜드 색으로 통일
+  const headerStyles = { header: "bg-[#eef0fb]", title: "text-[#4558b5]" };
 
   return (
     <DefaultSection

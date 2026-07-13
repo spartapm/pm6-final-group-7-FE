@@ -95,12 +95,17 @@ export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
     id: "field",
     label: "분야",
     layout: "list",
+    // FL-03 확정 구성 (분류기 SupportField와 일치)
     options: [
       { value: "", label: "전체" },
-      { value: "노후", label: "노후" },
-      { value: "주택", label: "주택" },
       { value: "경제", label: "경제" },
+      { value: "주택", label: "주택" },
       { value: "교통", label: "교통" },
+      { value: "복지", label: "복지" },
+      { value: "문화", label: "문화" },
+      { value: "환경", label: "환경" },
+      { value: "안전", label: "안전" },
+      { value: "행정", label: "행정" },
     ],
   },
   {
@@ -122,10 +127,11 @@ export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
   },
 ];
 
-export type JobsFilterValues = Record<string, string>;
+/** 필터 값: 그룹별 다중 선택 배열. list = 체크(다중), chips = 라디오(단일, 0~1개) */
+export type JobsFilterValues = Record<string, string[]>;
 
 export function createEmptyFilters(definitions: FilterDefinition[]): JobsFilterValues {
-  return Object.fromEntries(definitions.map((d) => [d.id, ""]));
+  return Object.fromEntries(definitions.map((d) => [d.id, [] as string[]]));
 }
 
 function attr(activity: Activity, key: string): string {
@@ -143,6 +149,13 @@ function getApplyStatus(activity: Activity): string {
   return "마감";
 }
 
+/** FL-02: '모집중' 선택 시 상시접수 공고도 포함 */
+export function matchesApplyStatus(activity: Activity, selected: string): boolean {
+  const status = getApplyStatus(activity);
+  if (selected === "모집중") return status === "모집중" || status === "상시접수";
+  return status === selected;
+}
+
 function matchWorkType(activity: Activity, value: string): boolean {
   const raw = attr(activity, "employment_type");
   if (!raw) return true;
@@ -158,6 +171,12 @@ function matchField(activity: Activity, value: string): boolean {
   return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
 }
 
+/** 그룹 내 OR: 선택된 값 중 하나라도 matcher를 만족하면 통과. 미선택(빈 배열)이면 통과. */
+function groupMatch(selected: string[] | undefined, matcher: (value: string) => boolean): boolean {
+  if (!selected || selected.length === 0) return true;
+  return selected.some((v) => matcher(v));
+}
+
 export function filterActivities(
   items: Activity[],
   category: "job" | "support",
@@ -165,45 +184,59 @@ export function filterActivities(
 ): Activity[] {
   return items.filter((activity) => {
     if (category === "job") {
-      const industry = filters.industry ?? "";
-      if (industry) {
-        const label = attr(activity, "industry") || attr(activity, "job_category");
-        if (label && label !== industry) return false;
-      }
+      const label = attr(activity, "industry") || attr(activity, "job_category");
+      if (!groupMatch(filters.industry, (v) => !label || label === v)) return false;
 
-      const region = filters.region ?? "";
-      if (region && activity.region_district !== region) return false;
+      // 지역: 선택 시 해당 구만 (region_district null 공고는 제외)
+      if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;
 
-      const workType = filters.workType ?? "";
-      if (workType && !matchWorkType(activity, workType)) return false;
+      if (!groupMatch(filters.workType, (v) => matchWorkType(activity, v))) return false;
 
-      const career = filters.career ?? "";
-      if (career && attr(activity, "career_requirement") && attr(activity, "career_requirement") !== career) {
+      if (
+        !groupMatch(filters.career, (v) => {
+          const req = attr(activity, "career_requirement");
+          return !req || req === v;
+        })
+      )
         return false;
-      }
 
-      const workDays = filters.workDays ?? "";
-      if (workDays && attr(activity, "work_days") && attr(activity, "work_days") !== workDays) return false;
-
-      const salary = filters.salary ?? "";
-      if (salary && attr(activity, "salary") && !attr(activity, "salary").includes(salary.replace("월 ", ""))) {
+      if (
+        !groupMatch(filters.workDays, (v) => {
+          const wd = attr(activity, "work_days");
+          return !wd || wd === v;
+        })
+      )
         return false;
-      }
 
-      const insurance = filters.insurance ?? "";
-      if (insurance && attr(activity, "insurance") && attr(activity, "insurance") !== insurance) return false;
+      if (
+        !groupMatch(filters.salary, (v) => {
+          const sal = attr(activity, "salary");
+          return !sal || sal.includes(v.replace("월 ", ""));
+        })
+      )
+        return false;
+
+      if (
+        !groupMatch(filters.insurance, (v) => {
+          const ins = attr(activity, "insurance");
+          return !ins || ins === v;
+        })
+      )
+        return false;
 
       return true;
     }
 
-    const field = filters.field ?? "";
-    if (field && !matchField(activity, field)) return false;
+    // support
+    if (!groupMatch(filters.field, (v) => matchField(activity, v))) return false;
 
-    const region = filters.region ?? "";
-    if (region && activity.region_district && activity.region_district !== region) return false;
+    // 지역: 전국(region_district null) 지원사업은 어떤 구를 선택해도 노출 (FL-05 정책)
+    if (
+      !groupMatch(filters.region, (v) => !activity.region_district || activity.region_district === v)
+    )
+      return false;
 
-    const applyStatus = filters.applyStatus ?? "";
-    if (applyStatus && getApplyStatus(activity) !== applyStatus) return false;
+    if (!groupMatch(filters.applyStatus, (v) => matchesApplyStatus(activity, v))) return false;
 
     return true;
   });

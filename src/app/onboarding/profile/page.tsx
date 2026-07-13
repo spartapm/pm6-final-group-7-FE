@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import {
   OnboardingChip,
@@ -10,6 +11,7 @@ import {
 } from "@/components/onboarding/OnboardingUI";
 import { apiFetch } from "@/lib/api-client";
 import { AGE_BANDS, CAREER_JOBS, CAREER_YEARS, EDUCATION_LEVELS } from "@/lib/onboarding";
+import type { MeResponse } from "@/lib/types";
 
 /** SCR-003 기본 정보 (Figma 1040:466) */
 export default function OnboardingProfilePage() {
@@ -21,7 +23,22 @@ export default function OnboardingProfilePage() {
   const [education, setEducation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const valid = ageBand && gender && careerJob && careerYears;
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<MeResponse>("/me"),
+  });
+
+  useEffect(() => {
+    if (!me?.onboarding) return;
+    setAgeBand(me.onboarding.age_band ?? null);
+    setGender(me.onboarding.gender ?? null);
+    setCareerJob(me.onboarding.career_job_code ?? null);
+    setCareerYears(me.onboarding.career_years ?? null);
+    setEducation(me.onboarding.education ?? null);
+  }, [me]);
+
+  const careerYearsOptional = careerJob === "homemaker" || careerJob === "no_experience";
+  const valid = ageBand && gender && careerJob && (careerYearsOptional || careerYears);
 
   async function handleNext() {
     if (!valid) return;
@@ -91,7 +108,7 @@ export default function OnboardingProfilePage() {
         </section>
 
         <section>
-          <OnboardingSectionLabel title="경력 기간" required />
+          <OnboardingSectionLabel title="경력 기간" required={careerYearsOptional ? "optional" : true} />
           <div className="mt-3 grid grid-cols-3 gap-2">
             {CAREER_YEARS.map((o) => (
               <OnboardingChip key={o} label={o} selected={careerYears === o} onClick={() => setCareerYears(o)} />

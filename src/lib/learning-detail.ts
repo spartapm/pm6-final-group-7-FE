@@ -21,23 +21,28 @@ export interface LearningTheme {
   categoryLabel: string;
 }
 
+// UI-01: 카테고리별 색상을 단일 브랜드 색(#5B6DBF)으로 통일 (캘린더 제외)
+const UNIFIED_ACCENT = "#5b6dbf";
+const UNIFIED_BADGE_BG = "#eef0fb";
+const UNIFIED_BADGE_TEXT = "#4558b5";
+
 export const EDUCATION_THEME: LearningTheme = {
-  accent: "#7c3aed",
-  accentBorder: "#7c3aed",
-  badgeBg: "#ede9fe",
-  badgeText: "#6d28d9",
-  sectionBg: "#ede9fe",
-  sectionText: "#6d28d9",
+  accent: UNIFIED_ACCENT,
+  accentBorder: UNIFIED_ACCENT,
+  badgeBg: UNIFIED_BADGE_BG,
+  badgeText: UNIFIED_BADGE_TEXT,
+  sectionBg: UNIFIED_BADGE_BG,
+  sectionText: UNIFIED_BADGE_TEXT,
   categoryLabel: "교육",
 };
 
 export const HOBBY_THEME: LearningTheme = {
-  accent: "#ea580c",
-  accentBorder: "#ea580c",
-  badgeBg: "#fff7ed",
-  badgeText: "#c2410c",
-  sectionBg: "#fff7ed",
-  sectionText: "#c2410c",
+  accent: UNIFIED_ACCENT,
+  accentBorder: UNIFIED_ACCENT,
+  badgeBg: UNIFIED_BADGE_BG,
+  badgeText: UNIFIED_BADGE_TEXT,
+  sectionBg: UNIFIED_BADGE_BG,
+  sectionText: UNIFIED_BADGE_TEXT,
   categoryLabel: "취미",
 };
 

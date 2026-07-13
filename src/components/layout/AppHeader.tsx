@@ -13,6 +13,7 @@ interface AppHeaderProps {
   showNotification?: boolean;
   title?: string;
   backHref?: string;
+  onBack?: () => void;
   showShare?: boolean;
 }
 
@@ -22,6 +23,7 @@ export function AppHeader({
   showNotification = true,
   title,
   backHref,
+  onBack,
   showShare = false,
 }: AppHeaderProps) {
   const { data: notifications } = useQuery({
@@ -35,10 +37,21 @@ export function AppHeader({
   if (title) {
     return (
       <header className="flex items-center gap-3 bg-white px-5 py-4">
-        {backHref && (
-          <Link href={backHref} className="text-xl font-bold text-text-primary" aria-label="뒤로">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xl font-bold text-text-primary"
+            aria-label="뒤로"
+          >
             ←
-          </Link>
+          </button>
+        ) : (
+          backHref && (
+            <Link href={backHref} className="text-xl font-bold text-text-primary" aria-label="뒤로">
+              ←
+            </Link>
+          )
         )}
         <h1 className="flex-1 text-lg font-bold text-text-primary">{title}</h1>
         {showShare && (

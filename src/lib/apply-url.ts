@@ -8,13 +8,19 @@ function rawPhone(activity: Activity): string | null {
   return null;
 }
 
-/** Resolve external apply URL with source-specific fallbacks */
+/** Resolve external apply URL with source-specific fallbacks (AP-01: 공고별 상세 URL 우선) */
 export function resolveApplyUrl(activity: Activity): string | null {
   if (activity.apply_url) return activity.apply_url;
 
-  if (activity.external_source === "seoul_job_portal") {
-    const q = encodeURIComponent(`${activity.title} ${activity.org_name}`);
-    return `https://www.gov.kr/search?query=${q}`;
+  // 지원사업(보조금24): 상세조회URL → 서비스ID 기반 상세 페이지
+  if (activity.category === "support" || activity.external_source === "gov24") {
+    const detail = activity.raw_content?.list as Record<string, unknown> | undefined;
+    const detailUrl = detail?.["상세조회URL"] ?? detail?.["온라인신청사이트URL"];
+    if (typeof detailUrl === "string" && detailUrl) return detailUrl;
+    const serviceId = detail?.["서비스ID"];
+    if (typeof serviceId === "string" && serviceId) {
+      return `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${serviceId}`;
+    }
   }
 
   if (activity.external_source === "senuri") {
@@ -25,10 +31,10 @@ export function resolveApplyUrl(activity: Activity): string | null {
     }
   }
 
-  if (activity.category === "support") {
-    const detail = activity.raw_content?.list as Record<string, unknown> | undefined;
-    const detailUrl = detail?.["상세조회URL"];
-    if (typeof detailUrl === "string" && detailUrl) return detailUrl;
+  // 서울일자리포털은 공고별 고정 URL이 없어(포털 통합검색) 해당 공고 검색으로 연결
+  if (activity.external_source === "seoul_job_portal") {
+    const q = encodeURIComponent(`${activity.title} ${activity.org_name} 채용`);
+    return `https://search.naver.com/search.naver?query=${q}`;
   }
 
   return null;

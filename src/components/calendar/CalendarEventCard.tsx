@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/components/ui/Toast";
 import { ASSETS } from "@/lib/assets";
 import { apiFetch } from "@/lib/api-client";
 import { applyApplicationOptimistic, patchActivityApplied } from "@/lib/optimistic-application";
@@ -24,13 +25,16 @@ interface Props {
 
 export function CalendarEventCard({ item }: Props) {
   const queryClient = useQueryClient();
+  const { show: showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [applyConfirmOpen, setApplyConfirmOpen] = useState(false);
+  const [cancelApplyOpen, setCancelApplyOpen] = useState(false);
+  const [cancelBookmarkOpen, setCancelBookmarkOpen] = useState(false);
   const { activity, bookmarked, applied } = item;
   const expired = isActivityExpired(activity);
   const tagStyle = CATEGORY_TAG_STYLES[activity.category];
 
-  async function handleBookmark() {
+  async function doToggleBookmark() {
     setLoading(true);
     try {
       await apiFetch(`/activities/${activity.id}/bookmark`, { method: "POST" });
@@ -41,23 +45,41 @@ export function CalendarEventCard({ item }: Props) {
     }
   }
 
-  async function handleApplyToggle() {
+  function handleBookmark() {
+    // 이미 찜한 항목 해제 시 확인 팝업 (AP-05)
+    if (bookmarked) {
+      setCancelBookmarkOpen(true);
+      return;
+    }
+    void doToggleBookmark();
+  }
+
+  function confirmCancelBookmark() {
+    setCancelBookmarkOpen(false);
+    void doToggleBookmark();
+  }
+
+  function handleApplyToggle() {
+    // 신청완료 취소 시 확인 팝업 (AP-02)
     if (applied) {
-      patchActivityApplied(queryClient, activity.id, false);
-      try {
-        await applyApplicationOptimistic(queryClient, activity.id, false);
-      } catch {
-        // rollback handled in helper
-      }
+      setCancelApplyOpen(true);
       return;
     }
     setApplyConfirmOpen(true);
+  }
+
+  function confirmCancelApply() {
+    setCancelApplyOpen(false);
+    patchActivityApplied(queryClient, activity.id, false);
+    void applyApplicationOptimistic(queryClient, activity.id, false);
   }
 
   function confirmApply() {
     setApplyConfirmOpen(false);
     patchActivityApplied(queryClient, activity.id, true);
     void applyApplicationOptimistic(queryClient, activity.id, true);
+    // AP-06: 신청완료 안내 토스트
+    showToast("신청완료한 목록은 내 캘린더에서 확인할 수 있어요");
   }
 
   return (
@@ -154,10 +176,29 @@ export function CalendarEventCard({ item }: Props) {
         open={applyConfirmOpen}
         title="신청을 완료하셨나요?"
         description="외부 사이트에서 신청을 마치셨다면 신청완료로 표시해주세요."
-        confirmLabel="신청 완료"
+        confirmLabel="예"
         cancelLabel="아니요"
         onConfirm={confirmApply}
         onCancel={() => setApplyConfirmOpen(false)}
+      />
+
+      <ConfirmModal
+        open={cancelApplyOpen}
+        title="신청완료를 취소하시겠어요?"
+        description="취소하면 내 캘린더의 신청완료 표시가 사라져요."
+        confirmLabel="예"
+        cancelLabel="아니요"
+        onConfirm={confirmCancelApply}
+        onCancel={() => setCancelApplyOpen(false)}
+      />
+
+      <ConfirmModal
+        open={cancelBookmarkOpen}
+        title="찜하기를 취소하시겠습니까?"
+        confirmLabel="예"
+        cancelLabel="아니요"
+        onConfirm={confirmCancelBookmark}
+        onCancel={() => setCancelBookmarkOpen(false)}
       />
     </>
   );

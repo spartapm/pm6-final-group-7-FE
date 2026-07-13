@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import { OnboardingNextButton, RegionNoticeBanner } from "@/components/onboarding/OnboardingRegionUI";
 import { apiFetch } from "@/lib/api-client";
+import { getOnboardingFlow } from "@/lib/onboarding";
 
 const CITIES = [
   "서울", "경기", "인천", "부산", "대구", "광주",
@@ -17,6 +18,12 @@ export default function OnboardingCityPage() {
   const router = useRouter();
   const [city, setCity] = useState("서울");
   const [loading, setLoading] = useState(false);
+  // ON-04: 설정에서 재진입한 경우 첫 단계(SCR-002)에서도 뒤로가기(→ /my) 제공
+  const [backHref, setBackHref] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (getOnboardingFlow() === "settings") setBackHref("/my");
+  }, []);
 
   async function handleNext() {
     if (city !== "서울") return;
@@ -37,7 +44,7 @@ export default function OnboardingCityPage() {
 
   return (
     <div className="flex min-h-dvh flex-col px-6 pb-28 pt-6">
-      <OnboardingStepProgress step="region" />
+      <OnboardingStepProgress step="region" backHref={backHref} />
 
       <h1 className="text-2xl font-bold text-text-primary">어느 지역에 계세요?</h1>
       <p className="mt-2 text-lg text-[#8a8f9c]">가까운 활동과 일자리를 찾아드려요</p>

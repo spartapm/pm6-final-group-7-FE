@@ -28,8 +28,8 @@ function SupportSectionCard({
 }) {
   return (
     <div className="overflow-hidden rounded-[14px] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
-      <div className="border-b border-[#f3f4f6] bg-[#dcfce7] px-4 py-3">
-        <p className="text-[18px] font-black text-[#15803d]">
+      <div className="border-b border-[#f3f4f6] bg-[#eef0fb] px-4 py-3">
+        <p className="text-[18px] font-black text-[#4558b5]">
           {icon} {title}
         </p>
       </div>
@@ -93,9 +93,9 @@ export function SupportDetailView({
 
       <div className="space-y-3 px-4 py-4">
         <div className="overflow-hidden rounded-[14px] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
-          <div className="h-[6px] bg-[#16a34a]" />
+          <div className="h-[6px] bg-[#5b6dbf]" />
           <div className="p-5">
-            <span className="inline-block rounded-full bg-[#dcfce7] px-2.5 py-1 text-[12px] font-black text-[#15803d]">
+            <span className="inline-block rounded-full bg-[#eef0fb] px-2.5 py-1 text-[12px] font-black text-[#4558b5]">
               지원사업
             </span>
             <h2 className="mt-3 text-[18px] font-black leading-snug text-[#101828]">
@@ -156,7 +156,7 @@ export function SupportDetailView({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-[#dcfce7] px-3 py-1.5 text-[14px] font-semibold text-[#15803d]"
+                className="rounded-full bg-[#eef0fb] px-3 py-1.5 text-[14px] font-semibold text-[#4558b5]"
               >
                 {tag}
               </span>
@@ -175,7 +175,7 @@ export function SupportDetailView({
           disabled={loading || isExpired}
           onClick={onBookmark}
           className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-2xl ${
-            activity.bookmarked ? "border-[#16a34a] text-red-500" : "border-[#e5e7eb] text-[#9aa0a8]"
+            activity.bookmarked ? "border-[#5b6dbf] text-red-500" : "border-[#e5e7eb] text-[#9aa0a8]"
           }`}
           aria-label="찜하기"
         >
@@ -183,9 +183,9 @@ export function SupportDetailView({
         </button>
         <button
           type="button"
-          disabled={isExpired || activity.applied}
+          disabled={isExpired}
           onClick={onApply}
-          className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-[#16a34a] text-[16px] font-black text-white disabled:bg-gray-300"
+          className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-[#5b6dbf] text-[16px] font-black text-white disabled:bg-gray-300"
         >
           {activity.applied ? "신청완료" : isExpired ? "마감됨" : getApplyButtonLabel(activity)}
         </button>

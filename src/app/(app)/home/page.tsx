@@ -12,14 +12,14 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-client";
 import { getOnboardingPath } from "@/lib/onboarding";
 import type { MeResponse, RecommendationItem } from "@/lib/types";
-import { getNearestUpcomingItem, type CalendarItem } from "@/lib/calendar-utils";
+import { getUpcomingAppliedItems, type CalendarItem } from "@/lib/calendar-utils";
 
 export default function HomePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { show: showToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
-  const previousRecIds = useRef<string[]>([]);
+  const seenRecIds = useRef<Set<string>>(new Set());
 
   const { data: me, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
@@ -54,7 +54,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (recs?.items) {
-      previousRecIds.current = recs.items.map((r) => r.activity.id);
+      for (const r of recs.items) seenRecIds.current.add(r.activity.id);
     }
   }, [recs?.items]);
 
@@ -62,15 +62,21 @@ export default function HomePage() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const exclude = recs?.items.map((r) => r.activity.id) ?? [];
+      // 지금까지 본 추천을 누적 제외해 매번 새로운 세트를 요청 (HM-A)
+      const exclude = Array.from(seenRecIds.current);
       const result = await apiFetch<{ items: RecommendationItem[] }>("/recommendations/refresh", {
         method: "POST",
         body: JSON.stringify({ exclude_ids: exclude }),
       });
-      const newIds = result.items.map((r) => r.activity.id).sort().join(",");
-      const oldIds = exclude.sort().join(",");
-      if (newIds === oldIds || result.items.length === 0) {
+      const freshIds = result.items
+        .map((r) => r.activity.id)
+        .filter((id) => !seenRecIds.current.has(id));
+      if (result.items.length === 0 || freshIds.length === 0) {
+        // 풀 소진: 안내 후 본 목록을 초기화해 다음 새로고침부터 다시 순환
         showToast("지금 볼 수 있는 추천을 모두 확인했어요.");
+        seenRecIds.current = new Set(result.items.map((r) => r.activity.id));
+      } else {
+        for (const r of result.items) seenRecIds.current.add(r.activity.id);
       }
       await queryClient.invalidateQueries({ queryKey: ["recommendations"] });
     } catch {
@@ -80,26 +86,27 @@ export default function HomePage() {
     }
   }
 
-  const upcoming = calendar?.items ? getNearestUpcomingItem(calendar.items) : null;
+  const upcomingItems = calendar?.items ? getUpcomingAppliedItems(calendar.items) : [];
   const nickname = me?.profile?.nickname?.replace(/님$/, "") ?? "회원";
 
   return (
     <div className="bg-[#f8f9fc] pb-4">
       <AppHeader nickname={nickname} district={me?.onboarding?.region_district} />
 
-      {upcoming?.activity ? (
+      {upcomingItems.length > 0 ? (
         <SchedulePreviewCard
-          title={upcoming.activity.title}
-          category={upcoming.activity.category}
-          applyEnd={upcoming.activity.apply_end}
-          eventDate={upcoming.activity.event_start}
-          district={upcoming.activity.region_district}
-          activityId={upcoming.activity.id}
+          items={upcomingItems.map((item) => ({
+            activityId: item.activity.id,
+            title: item.activity.title,
+            category: item.activity.category,
+            applyEnd: item.activity.apply_end,
+            eventDate: item.activity.event_start,
+            district: item.activity.region_district,
+          }))}
         />
       ) : (
         onboardingComplete &&
-        calendar &&
-        calendar.items.length === 0 && (
+        calendar && (
           <div className="mx-5 -mt-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <p className="text-base font-extrabold text-text-primary">다가오는 내 일정</p>
             <p className="mt-2 text-sm text-text-muted">다가오는 일정이 아직 없어요.</p>
@@ -124,9 +131,10 @@ export default function HomePage() {
               type="button"
               disabled={refreshing}
               onClick={handleRefresh}
-              className={`shrink-0 pt-1 text-[13.5px] text-text-muted ${refreshing ? "animate-spin-slow" : ""}`}
+              className="flex shrink-0 items-center gap-1 pt-1 text-[13.5px] text-text-muted"
             >
-              ↻ 새로고침
+              <span className={`inline-block ${refreshing ? "animate-spin-slow" : ""}`}>↻</span>
+              새로고침
             </button>
           )}
         </div>

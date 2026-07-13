@@ -25,8 +25,8 @@ function JobSectionCard({
 }) {
   return (
     <div className="overflow-hidden rounded-[14px] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
-      <div className="border-b border-[#f3f4f6] bg-[#dbeafe] px-4 py-3">
-        <p className="text-[18px] font-black text-[#1d4ed8]">
+      <div className="border-b border-[#f3f4f6] bg-[#eef0fb] px-4 py-3">
+        <p className="text-[18px] font-black text-[#4558b5]">
           {icon} {title}
         </p>
       </div>
@@ -124,9 +124,9 @@ export function JobDetailView({
 
       <div className="space-y-3 px-4 py-4">
         <div className="overflow-hidden rounded-[14px] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
-          <div className="h-[6px] bg-[#2563eb]" />
+          <div className="h-[6px] bg-[#5b6dbf]" />
           <div className="p-5">
-            <span className="inline-block rounded-full bg-[#dbeafe] px-2.5 py-1 text-[12px] font-black text-[#1d4ed8]">
+            <span className="inline-block rounded-full bg-[#eef0fb] px-2.5 py-1 text-[12px] font-black text-[#4558b5]">
               채용
             </span>
             <h2 className="mt-3 text-[18px] font-black leading-snug text-[#101828]">
@@ -191,7 +191,7 @@ export function JobDetailView({
               {benefits.map((benefit) => (
                 <span
                   key={benefit}
-                  className="rounded-full bg-[#dbeafe] px-3 py-1.5 text-[18px] font-semibold text-[#1d4ed8]"
+                  className="rounded-full bg-[#eef0fb] px-3 py-1.5 text-[18px] font-semibold text-[#4558b5]"
                 >
                   {benefit}
                 </span>
@@ -215,7 +215,7 @@ export function JobDetailView({
           disabled={loading || isExpired}
           onClick={onBookmark}
           className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-2xl ${
-            activity.bookmarked ? "border-[#2563eb] text-red-500" : "border-[#e5e7eb] text-[#9aa0a8]"
+            activity.bookmarked ? "border-[#5b6dbf] text-red-500" : "border-[#e5e7eb] text-[#9aa0a8]"
           }`}
           aria-label="찜하기"
         >
@@ -223,11 +223,11 @@ export function JobDetailView({
         </button>
         <button
           type="button"
-          disabled={isExpired || activity.applied}
+          disabled={isExpired}
           onClick={onApply}
-          className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-[#2563eb] text-[16px] font-black text-white disabled:bg-gray-300"
+          className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-[#5b6dbf] text-[16px] font-black text-white disabled:bg-gray-300"
         >
-          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "신청하러 가기"}
+          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "지원하러 가기"}
         </button>
       </div>
     </div>

@@ -5,11 +5,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LikeCompleteDialog } from "@/components/activity/LikeCompleteDialog";
 import { JobDetailView } from "@/components/activity/JobDetailView";
 import { LearningDetailView } from "@/components/activity/LearningDetailView";
 import { SupportDetailView } from "@/components/activity/SupportDetailView";
 import { apiFetch } from "@/lib/api-client";
+import { setApplicationOptimistic } from "@/lib/optimistic-application";
 import { openApplyUrl } from "@/lib/apply-url";
 import { CATEGORY_LABELS } from "@/lib/onboarding";
 import type { Activity, MeResponse } from "@/lib/types";
@@ -63,6 +65,7 @@ export default function ActivityDetailPage({
   const { show: showToast } = useToast();
   const { requireAuth } = useAuthAction();
   const [likeDialogOpen, setLikeDialogOpen] = useState(false);
+  const [cancelApplyOpen, setCancelApplyOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { data: activity, isLoading } = useQuery({
@@ -99,10 +102,15 @@ export default function ActivityDetailPage({
 
   async function handleApply() {
     await requireAuth(async () => {
+      // 이미 신청완료 상태면 재클릭 시 취소 확인 팝업 (AP-02)
       if (activity?.applied) {
-        if (!openApplyUrl(activity)) {
-          showToast("신청 링크가 없습니다. 담당 기관에 문의해 주세요.");
-        }
+        setCancelApplyOpen(true);
+        return;
+      }
+
+      // 오프라인이면 신청 대기 저장 없이 안내만 (AP-04)
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        showToast("인터넷 연결을 확인해주세요.");
         return;
       }
 
@@ -111,6 +119,16 @@ export default function ActivityDetailPage({
         showToast("신청 링크가 없습니다. 담당 기관에 문의해 주세요.");
       }
     });
+  }
+
+  async function confirmCancelApply() {
+    setCancelApplyOpen(false);
+    try {
+      await setApplicationOptimistic(queryClient, id, false);
+      showToast("신청완료를 취소했어요.");
+    } catch {
+      showToast("취소 처리에 실패했어요. 다시 시도해주세요.");
+    }
   }
 
   async function handleShare() {
@@ -131,6 +149,18 @@ export default function ActivityDetailPage({
     setLikeDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["me"] });
   }
+
+  const cancelApplyModal = (
+    <ConfirmModal
+      open={cancelApplyOpen}
+      title="신청완료를 취소하시겠어요?"
+      description="취소하면 내 캘린더의 신청완료 표시가 사라져요."
+      confirmLabel="예"
+      cancelLabel="아니요"
+      onConfirm={confirmCancelApply}
+      onCancel={() => setCancelApplyOpen(false)}
+    />
+  );
 
   if (isLoading) {
     return <div className="p-8 text-center text-text-muted">불러오는 중...</div>;
@@ -156,6 +186,7 @@ export default function ActivityDetailPage({
           onClose={() => setLikeDialogOpen(false)}
           onDismissForever={dismissLikePopup}
         />
+        {cancelApplyModal}
       </>
     );
   }
@@ -176,6 +207,7 @@ export default function ActivityDetailPage({
           onClose={() => setLikeDialogOpen(false)}
           onDismissForever={dismissLikePopup}
         />
+        {cancelApplyModal}
       </>
     );
   }
@@ -196,6 +228,7 @@ export default function ActivityDetailPage({
           onClose={() => setLikeDialogOpen(false)}
           onDismissForever={dismissLikePopup}
         />
+        {cancelApplyModal}
       </>
     );
   }
@@ -297,7 +330,7 @@ export default function ActivityDetailPage({
         </button>
         <button
           type="button"
-          disabled={isExpired || activity.applied}
+          disabled={isExpired}
           onClick={handleApply}
           className="flex flex-1 items-center justify-center rounded-2xl bg-primary py-4 text-lg font-bold text-white disabled:bg-gray-300"
         >
@@ -310,6 +343,7 @@ export default function ActivityDetailPage({
         onClose={() => setLikeDialogOpen(false)}
         onDismissForever={dismissLikePopup}
       />
+      {cancelApplyModal}
     </div>
   );
 }

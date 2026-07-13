@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
@@ -53,13 +53,24 @@ export default function OnboardingDetailPage({
 
   const options =
     type === "job"
-      ? CAREER_JOBS.map((j) => j.label)
+      ? CAREER_JOBS.filter((j) => j.code !== "no_experience").map((j) => j.label)
       : type === "hobby"
         ? HOBBY_OPTIONS
         : LEARNING_OPTIONS;
 
+  // ON-03: 이전 경력 항목을 옵션 최상단으로 정렬
+  const orderedOptions =
+    type === "job" && prevCareerLabel && options.includes(prevCareerLabel)
+      ? [prevCareerLabel, ...options.filter((o) => o !== prevCareerLabel)]
+      : options;
+
   const prefKey =
     type === "job" ? "job_preferences" : type === "hobby" ? "hobby_preferences" : "learning_preferences";
+
+  useEffect(() => {
+    const prefs = me?.onboarding?.[prefKey] as { interests?: string[] } | undefined;
+    if (prefs?.interests && prefs.interests.length > 0) setSelected(prefs.interests);
+  }, [me, prefKey]);
 
   function toggle(v: string) {
     setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
@@ -90,7 +101,7 @@ export default function OnboardingDetailPage({
       <p className="mt-2 text-base text-[#9a9da8]">{meta.subtitle}</p>
 
       <div className="mt-6 space-y-2">
-        {options.map((o) => (
+        {orderedOptions.map((o) => (
           <OnboardingCheckboxCard
             key={o}
             label={o}

@@ -32,6 +32,7 @@ export default function CalendarPage() {
     selectedDate,
     category,
     appliedOnly,
+    includeAlwaysOpen: true,
   });
 
   function getEmptyReason(): "no_saved" | "no_date" | "no_filter" | null {

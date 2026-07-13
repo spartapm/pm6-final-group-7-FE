@@ -37,6 +37,16 @@ async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** 네트워크 오류(일시적 끊김/오프라인 복귀 직후 등) 시 1회 자동 재시도 (AP-04) */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    await sleep(1500);
+    return await fetch(url, init);
+  }
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getAccessToken();
   const hasBody = options.body !== undefined && options.body !== null;
@@ -47,10 +57,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
 
   const url = `${API_BASE_URL}${path}`;
-  let response = await fetch(url, { ...options, headers });
+  let response = await fetchWithRetry(url, { ...options, headers });
   for (let attempt = 0; attempt < 2 && shouldRetryResponse(response); attempt += 1) {
     await sleep(1500 * (attempt + 1));
-    response = await fetch(url, { ...options, headers });
+    response = await fetchWithRetry(url, { ...options, headers });
   }
 
   if (!response.ok) {

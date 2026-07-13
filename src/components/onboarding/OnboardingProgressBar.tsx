@@ -24,9 +24,6 @@ export function OnboardingProgressBar({ current, total, backHref }: Props) {
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-[13px] text-[#8a8f9c]">
-          {current} / {total}
-        </span>
       </div>
     </div>
   );

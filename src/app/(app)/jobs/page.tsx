@@ -6,7 +6,6 @@ import { RecommendationCard } from "@/components/activity/ActivityCards";
 import { ActivityFilterBar } from "@/components/list/ActivityFilterBar";
 import { ListCategoryTabs } from "@/components/list/ListCategoryTabs";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useActivityActions } from "@/hooks/useActivityActions";
 import { apiFetch } from "@/lib/api-client";
 import {
   JOB_TAB_FILTERS,
@@ -25,7 +24,6 @@ export default function JobsPage() {
   const [category, setCategory] = useState<"job" | "support">("job");
   const [jobFilters, setJobFilters] = useState(() => createEmptyFilters(JOB_TAB_FILTERS));
   const [supportFilters, setSupportFilters] = useState(() => createEmptyFilters(SUPPORT_TAB_FILTERS));
-  const { toggleBookmark, loading: bookmarkLoading, LikeDialog } = useActivityActions();
 
   const activeFilterDefs = category === "job" ? JOB_TAB_FILTERS : SUPPORT_TAB_FILTERS;
   const activeFilters = category === "job" ? jobFilters : supportFilters;
@@ -40,7 +38,7 @@ export default function JobsPage() {
     return filterActivities(data.items, category, activeFilters);
   }, [data?.items, category, activeFilters]);
 
-  const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+  const hasActiveFilters = Object.values(activeFilters).some((arr) => arr.length > 0);
   const emptyFromFilter = (data?.items?.length ?? 0) > 0 && filteredItems.length === 0;
 
   function handleCategoryChange(next: string) {
@@ -53,7 +51,7 @@ export default function JobsPage() {
     setCategory(nextCategory);
   }
 
-  function handleFilterChange(id: string, value: string) {
+  function handleFilterChange(id: string, value: string[]) {
     if (category === "job") {
       setJobFilters((prev) => ({ ...prev, [id]: value }));
     } else {
@@ -80,7 +78,6 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-full bg-[#f8f9fc] pb-4">
-      {LikeDialog}
       <header className="bg-white px-6 pb-1 pt-6">
         <h1 className="text-[22px] font-bold text-[#1c1c27]">일자리 · 지원사업</h1>
       </header>
@@ -111,8 +108,6 @@ export default function JobsPage() {
             showReasons={false}
             expired={activity.status === "expired"}
             bookmarked={activity.bookmarked}
-            bookmarkLoading={bookmarkLoading}
-            onBookmark={() => toggleBookmark(activity.id)}
           />
         ))}
       </div>

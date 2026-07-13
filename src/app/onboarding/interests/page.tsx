@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import {
   OnboardingCategoryTag,
@@ -9,6 +10,7 @@ import {
 } from "@/components/onboarding/OnboardingUI";
 import { getDetailStepKey, getOrderedDirections } from "@/lib/onboarding";
 import { apiFetch } from "@/lib/api-client";
+import type { MeResponse } from "@/lib/types";
 
 const OPTIONS = [
   { id: "job", emoji: "💼", title: "다시 일하고 싶어요", tag: "재취업·소득활동" },
@@ -21,6 +23,16 @@ export default function OnboardingInterestsPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<MeResponse>("/me"),
+  });
+
+  useEffect(() => {
+    const dirs = me?.onboarding?.interest_directions;
+    if (dirs && dirs.length > 0) setSelected(dirs);
+  }, [me]);
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));

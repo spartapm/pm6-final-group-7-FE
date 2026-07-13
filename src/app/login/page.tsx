@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { devLogin } from "@/lib/api-client";
+import { apiFetch, devLogin } from "@/lib/api-client";
 import { enableDevSession, useDevAuthSession } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
+import { getOnboardingPath } from "@/lib/onboarding";
 import { ASSETS } from "@/lib/assets";
+import type { MeResponse } from "@/lib/types";
 
 function LoginForm() {
   const router = useRouter();
@@ -22,6 +24,15 @@ function LoginForm() {
   }, [searchParams]);
 
   async function afterLogin() {
+    try {
+      const me = await apiFetch<MeResponse>("/me");
+      if (!me.onboarding?.onboarding_completed_at) {
+        router.push(getOnboardingPath(me.onboarding?.onboarding_step ?? "region"));
+        return;
+      }
+    } catch {
+      // fall through to home
+    }
     router.push("/home");
   }
 

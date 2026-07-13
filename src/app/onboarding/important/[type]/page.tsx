@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
@@ -44,6 +44,27 @@ export default function OnboardingImportantPage({
   const directions = me?.onboarding?.interest_directions ?? [];
   const infoKey =
     type === "job" ? "important_job_info" : type === "hobby" ? "important_hobby_info" : "important_learning_info";
+
+  useEffect(() => {
+    if (!me?.onboarding) return;
+    const info = (me.onboarding as unknown as Record<string, unknown>)[infoKey] as
+      | Record<string, unknown>
+      | undefined;
+    const savedPriority = info?.priority;
+    if (typeof savedPriority !== "string") return;
+    setPriority(savedPriority);
+    const fu = config.followUps[savedPriority];
+    if (!fu) return;
+    if (fu.kind === "time_day") {
+      setSchedule({
+        timeSlot: typeof info?.time_slot === "string" ? info.time_slot : null,
+        dayType: typeof info?.day_type === "string" ? info.day_type : null,
+      });
+    } else {
+      const val = info?.[fu.key];
+      if (typeof val === "string") setFollowUp({ [fu.key]: val });
+    }
+  }, [me, infoKey, config]);
 
   const activeFollowUp = priority ? config.followUps[priority] : null;
 
