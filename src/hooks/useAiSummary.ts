@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   getCachedSummary,
   requestActivitySummary,
   setCachedSummary,
 } from "@/lib/ai-summary-queue";
-import { isStaleAiSummary, truncateForCard } from "@/lib/ai-summary-display";
-import type { Activity } from "@/lib/types";
+import { buildSummaryLead, isStaleAiSummary, truncateForCard } from "@/lib/ai-summary-display";
+import { apiFetch } from "@/lib/api-client";
+import type { Activity, MeResponse } from "@/lib/types";
 
 export function needsAiSummaryGeneration(activity: Activity): boolean {
   return isStaleAiSummary(activity.ai_summary);
@@ -27,6 +29,14 @@ export function useAiSummary(activity: Activity) {
   const [summary, setSummary] = useState<string | null>(seed);
   const [loading, setLoading] = useState(seed ? false : needsAiSummaryGeneration(activity));
   const [error, setError] = useState(false);
+
+  // 문제2: 온보딩 중요 항목(급여·비용 등) 기반 서두를 요약 앞에 붙인다.
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<MeResponse>("/me"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const lead = buildSummaryLead(activity, me?.onboarding ?? null);
 
   useEffect(() => {
     // 이미 세션 캐시에 있으면 재요청 없이 즉시 사용 (탭/화면 전환 시 재로딩 방지)
@@ -71,10 +81,12 @@ export function useAiSummary(activity: Activity) {
     };
   }, [activity.id, activity.ai_summary]);
 
+  const summaryWithLead = summary ? `${lead}${summary}` : summary;
+
   return {
-    summary,
+    summary: summaryWithLead,
     loading,
     error,
-    cardSummary: summary ? truncateForCard(summary) : null,
+    cardSummary: summary ? truncateForCard(`${lead}${summary}`) : null,
   };
 }
