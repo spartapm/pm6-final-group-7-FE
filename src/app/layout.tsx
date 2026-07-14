@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { PostHogProvider } from "@/providers/PostHogProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
@@ -20,9 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <QueryProvider>
-          <ToastProvider>
-            <div className="mobile-shell">{children}</div>
-          </ToastProvider>
+          <PostHogProvider>
+            <ToastProvider>
+              <div className="mobile-shell">{children}</div>
+            </ToastProvider>
+          </PostHogProvider>
         </QueryProvider>
       </body>
     </html>
