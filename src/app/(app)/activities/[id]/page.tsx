@@ -115,8 +115,11 @@ export default function ActivityDetailPage({
       }
 
       await apiFetch(`/activities/${id}/apply-click`, { method: "POST" });
-      if (!openApplyUrl(activity!)) {
+      const result = await openApplyUrl(activity!);
+      if (!result.opened) {
         showToast("신청 링크가 없습니다. 담당 기관에 문의해 주세요.");
+      } else if (result.copiedTitle) {
+        showToast("공고 제목을 복사했어요. 포털에서 붙여넣어 검색하세요.");
       }
     });
   }

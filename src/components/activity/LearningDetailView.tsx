@@ -14,6 +14,7 @@ import {
   type LearningTheme,
 } from "@/lib/learning-detail";
 import { AiSummarySection } from "@/components/activity/AiSummarySection";
+import { getApplyButtonLabel } from "@/lib/apply-url";
 import type { Activity } from "@/lib/types";
 
 function ProgramSectionCard({
@@ -241,7 +242,11 @@ export function LearningDetailView({
           className="flex h-[52px] flex-1 items-center justify-center rounded-2xl text-[16px] font-black text-white disabled:bg-gray-300"
           style={{ backgroundColor: isExpired ? undefined : theme.accent }}
         >
-          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "신청하러 가기"}
+          {activity.applied
+            ? "신청완료"
+            : isExpired
+              ? "마감됨"
+              : getApplyButtonLabel(activity)}
         </button>
       </div>
     </div>

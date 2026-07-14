@@ -16,6 +16,7 @@ export interface Activity {
   attributes: Record<string, unknown>;
   raw_content: Record<string, unknown>;
   ai_summary?: string | null;
+  listed_at?: string | null;
   bookmarked?: boolean;
   applied?: boolean;
 }

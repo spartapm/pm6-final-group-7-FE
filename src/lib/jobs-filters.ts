@@ -171,6 +171,20 @@ function matchField(activity: Activity, value: string): boolean {
   return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
 }
 
+function matchIndustry(activity: Activity, value: string): boolean {
+  const tags = activity.attributes?.onboarding_job_tags;
+  if (Array.isArray(tags) && tags.length > 0) {
+    const code = CAREER_JOBS.find((j) => j.label === value)?.code;
+    if (code && tags.includes(code)) return true;
+    if (tags.includes(value)) return true;
+    // 태그가 있는데 선택 업종과 불일치하면 제외 (unmapped만 있으면 미매칭)
+    return false;
+  }
+  const label = attr(activity, "industry") || attr(activity, "job_category");
+  if (!label) return true;
+  return label === value;
+}
+
 /** 그룹 내 OR: 선택된 값 중 하나라도 matcher를 만족하면 통과. 미선택(빈 배열)이면 통과. */
 function groupMatch(selected: string[] | undefined, matcher: (value: string) => boolean): boolean {
   if (!selected || selected.length === 0) return true;
@@ -184,8 +198,7 @@ export function filterActivities(
 ): Activity[] {
   return items.filter((activity) => {
     if (category === "job") {
-      const label = attr(activity, "industry") || attr(activity, "job_category");
-      if (!groupMatch(filters.industry, (v) => !label || label === v)) return false;
+      if (!groupMatch(filters.industry, (v) => matchIndustry(activity, v))) return false;
 
       // 지역: 선택 시 해당 구만 (region_district null 공고는 제외)
       if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;

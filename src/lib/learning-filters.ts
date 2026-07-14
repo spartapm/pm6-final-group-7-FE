@@ -30,9 +30,12 @@ export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
     options: [
       { value: "", label: "전체" },
       { value: "디지털·AI", label: "디지털·AI" },
-      { value: "직업·자격", label: "직업·자격" },
-      { value: "언어·문해", label: "언어·문해" },
-      { value: "생활·교양", label: "생활·교양" },
+      { value: "직업역량", label: "직업역량" },
+      { value: "자격증", label: "자격증" },
+      { value: "요리·생활", label: "요리·생활" },
+      { value: "건강·복지", label: "건강·복지" },
+      { value: "미디어", label: "미디어" },
+      { value: "언어", label: "언어" },
     ],
   },
   {
@@ -72,10 +75,10 @@ export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
     layout: "list",
     options: [
       { value: "", label: "전체" },
-      { value: "운동·건강", label: "운동·건강" },
       { value: "미술·공예", label: "미술·공예" },
+      { value: "운동·건강", label: "운동·건강" },
       { value: "음악·공연", label: "음악·공연" },
-      { value: "여행·나들이", label: "여행·나들이" },
+      { value: "여행", label: "여행" },
       { value: "봉사·나눔", label: "봉사·나눔" },
       { value: "사진·영상", label: "사진·영상" },
     ],
@@ -114,8 +117,12 @@ function matchCost(activity: Activity, value: string): boolean {
 }
 
 function matchLearningField(activity: Activity, value: string): boolean {
-  const field = attr(activity, "field");
-  if (field) return field === value;
+  const primary = attr(activity, "field") || attr(activity, "field_primary");
+  const secondary = attr(activity, "field_secondary");
+  if (primary === value || secondary === value) return true;
+  const tags = activity.attributes?.tags;
+  if (Array.isArray(tags) && tags.some((t) => t === value)) return true;
+  if (primary || secondary) return false;
   return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
 }
 

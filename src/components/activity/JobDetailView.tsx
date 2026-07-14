@@ -7,10 +7,11 @@ import { ASSETS } from "@/lib/assets";
 import {
   getJobBenefits,
   getJobDescription,
-  getJobQualifications,
+  getJobQualificationRows,
   getJobSummaryRows,
   getJobTags,
 } from "@/lib/job-detail";
+import { getApplyButtonLabel } from "@/lib/apply-url";
 import { AiSummarySection } from "@/components/activity/AiSummarySection";
 import type { Activity } from "@/lib/types";
 
@@ -180,9 +181,33 @@ export function JobDetailView({
         </JobSectionCard>
 
         <JobSectionCard icon="📝" title="지원 자격 / 신청 조건">
-          <p className="p-5 text-[18px] leading-relaxed text-[#364153]">
-            {getJobQualifications(activity)}
-          </p>
+          {(() => {
+            const qRows = getJobQualificationRows(activity);
+            if (qRows.length === 0) {
+              return (
+                <p className="p-5 text-[18px] leading-relaxed text-[#364153]">
+                  세부 지원 조건은 채용기관에 확인해주세요.
+                </p>
+              );
+            }
+            return (
+              <div>
+                {qRows.map((row, index) => (
+                  <div
+                    key={row.label}
+                    className={`flex border-[#f3f4f6] ${index < qRows.length - 1 ? "border-b" : ""}`}
+                  >
+                    <div className="flex w-28 shrink-0 items-center bg-[#f9fafb] px-4 py-3">
+                      <span className="text-[18px] font-bold text-[#4a5565]">{row.label}</span>
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center px-4 py-3">
+                      <span className="text-[18px] text-[#1e2939]">{row.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </JobSectionCard>
 
         {benefits.length > 0 && (
@@ -227,7 +252,11 @@ export function JobDetailView({
           onClick={onApply}
           className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-[#5b6dbf] text-[16px] font-black text-white disabled:bg-gray-300"
         >
-          {activity.applied ? "신청완료" : isExpired ? "마감됨" : "지원하러 가기"}
+          {activity.applied
+            ? "신청완료"
+            : isExpired
+              ? "마감됨"
+              : getApplyButtonLabel(activity)}
         </button>
       </div>
     </div>
