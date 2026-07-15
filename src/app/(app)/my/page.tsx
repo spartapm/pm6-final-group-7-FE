@@ -94,15 +94,14 @@ export default function MyPage() {
           />
           <MyMenuItem
             onClick={() => {
-              // MY-B: 오픈채팅 링크 미제공 → "오픈 예정" 안내
               if (!openCustomerCenter()) {
-                showToast("고객센터는 오픈 예정이에요");
+                showToast("고객센터 연결에 실패했어요. 잠시 후 다시 시도해주세요.");
               }
             }}
             iconBg="#e8f8ef"
             icon={<span className="text-sm font-bold text-[#34a853]">?</span>}
             title="고객센터"
-            subtitle="카카오톡 오픈채팅 (오픈 예정)"
+            subtitle="카카오톡 오픈채팅으로 문의하기"
             showDivider
           />
         </MyMenuSection>

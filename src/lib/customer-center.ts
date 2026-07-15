@@ -1,9 +1,12 @@
+/** 오육이랑 카카오톡 오픈채팅 — env로 덮어쓸 수 있음 */
+const DEFAULT_CUSTOMER_CENTER_URL = "https://open.kakao.com/o/s4bQx9Bi";
+
 export function getCustomerCenterUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_CUSTOMER_CENTER_URL?.trim();
-  return url || null;
+  return url || DEFAULT_CUSTOMER_CENTER_URL;
 }
 
-/** URL이 설정된 경우에만 새 창을 열고, 없으면 false 반환 */
+/** 고객센터(오픈채팅)를 새 창으로 연다 */
 export function openCustomerCenter(): boolean {
   const url = getCustomerCenterUrl();
   if (!url) return false;
