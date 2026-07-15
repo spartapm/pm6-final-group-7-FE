@@ -1,5 +1,7 @@
 import type { Activity } from "@/lib/types";
 
+const SEOUL_JOB_LIST_URL = "https://job.seoul.go.kr/hmpg/rmim/rsmg/rsmgListPage.do";
+
 function rawPhone(activity: Activity): string | null {
   const fromAttr = activity.attributes?.phone;
   if (typeof fromAttr === "string" && fromAttr.trim()) return fromAttr.trim();
@@ -10,13 +12,51 @@ function rawPhone(activity: Activity): string | null {
 
 function firstUrl(...candidates: unknown[]): string | null {
   for (const c of candidates) {
-    if (typeof c === "string" && /^https?:\/\//i.test(c.trim())) return c.trim();
+    if (typeof c === "string") {
+      const extracted = extractHttpUrl(c);
+      if (extracted) return extracted;
+    }
   }
   return null;
 }
 
+/** 텍스트/HTML에 섞인 http(s) URL 추출 */
+function extractHttpUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const match = trimmed.match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0]!.replace(/[),.]+$/, "") : null;
+}
+
+function resolveTourApplyUrl(activity: Activity): string | null {
+  const a = activity.attributes ?? {};
+  const raw = activity.raw_content ?? {};
+  return (
+    firstUrl(
+      a.booking_url,
+      raw.bookingplace,
+      a.reservation_url,
+      raw.reservationurl,
+      raw.reservation,
+      a.event_homepage,
+      raw.eventhomepage,
+      a.homepage,
+      raw.homepage,
+      activity.apply_url
+    ) ??
+    (typeof a.phone === "string" && a.phone
+      ? `tel:${String(a.phone).replace(/[^\d+]/g, "")}`
+      : null)
+  );
+}
+
 /** Resolve external apply URL with source-specific fallbacks (AP-01: 공고별 상세 URL 우선) */
 export function resolveApplyUrl(activity: Activity): string | null {
+  // 관광공사: attributes 우선순위가 apply_url(홈페이지 등)보다 앞섬
+  if (activity.external_source === "tour_api") {
+    return resolveTourApplyUrl(activity);
+  }
+
   if (activity.apply_url) return activity.apply_url;
 
   if (activity.category === "support" || activity.external_source === "gov24") {
@@ -37,19 +77,9 @@ export function resolveApplyUrl(activity: Activity): string | null {
     }
   }
 
-  // 서울일자리: 포털 검색 화면 (제목 복사는 openApplyUrl에서 처리)
+  // 서울일자리: 목록 화면 + 제목 복사 (openApplyUrl)
   if (activity.external_source === "seoul_job_portal") {
-    const q = encodeURIComponent(activity.title);
-    return `https://job.seoul.go.kr/www/joboffer/JobOfferSrch.do?reQuery=${q}`;
-  }
-
-  // 관광공사 / 문화행사 / 50플러스 — attributes·raw의 URL 우선순위
-  if (activity.external_source === "tour_api") {
-    const a = activity.attributes ?? {};
-    return (
-      firstUrl(a.booking_url, a.reservation_url, a.event_homepage, a.homepage) ??
-      (typeof a.phone === "string" && a.phone ? `tel:${String(a.phone).replace(/[^\d+]/g, "")}` : null)
-    );
+    return SEOUL_JOB_LIST_URL;
   }
 
   if (activity.external_source === "seoul_cultural_event") {
@@ -74,7 +104,7 @@ export function resolveApplyUrl(activity: Activity): string | null {
 
 export function getApplyButtonLabel(activity: Activity): string {
   if (activity.external_source === "seoul_job_portal") {
-    return "서울일자리포털에서 확인하기";
+    return "지원하러 가기";
   }
   const url = resolveApplyUrl(activity);
   if (!url) {

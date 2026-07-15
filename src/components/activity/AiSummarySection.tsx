@@ -1,6 +1,6 @@
 "use client";
 
-import { getAiSummaryLabel, truncateForCard } from "@/lib/ai-summary-display";
+import { getAiSummaryLabel, truncateCardSummary } from "@/lib/ai-summary-display";
 import { useAiSummary } from "@/hooks/useAiSummary";
 import type { Activity } from "@/lib/types";
 
@@ -45,13 +45,25 @@ export function AiSummaryBlock({
   compact = false,
   mode = "card",
 }: AiSummaryBlockProps) {
-  const { summary, loading, error, cardSummary } = useAiSummary(activity);
+  const { summary, loading, error, cardSummary, hidden } = useAiSummary(activity);
+
+  if (hidden) return null;
+  if (!loading && (error || summary === "" || !summary)) {
+    // hideable 소스는 빈 메시지 대신 숨김; 그 외는 빈 상태 문구
+    if (
+      activity.external_source === "tour_api" ||
+      activity.external_source === "seoul_cultural_event" ||
+      activity.external_source === "seoul_fifty_plus"
+    ) {
+      return null;
+    }
+  }
 
   const displayText = (() => {
     if (loading) return null;
     if (error || !summary) return "요약 정보가 아직 없어요.";
     if (mode === "detail") return summary;
-    return truncateForCard(cardSummary ?? summary);
+    return cardSummary ?? truncateCardSummary(activity, summary);
   })();
 
   return (
@@ -117,10 +129,20 @@ export function AiSummarySection({
   activity,
   bodyClass,
 }: AiSummarySectionProps) {
-  const { summary, loading, error } = useAiSummary(activity);
+  const { summary, loading, error, hidden } = useAiSummary(activity);
   const label = getAiSummaryLabel(activity.category);
 
-  // UI-01: 변형별 색상 대신 단일 브랜드 색으로 통일
+  if (hidden) return null;
+  if (
+    !loading &&
+    (summary === "" || (!summary && !error)) &&
+    (activity.external_source === "tour_api" ||
+      activity.external_source === "seoul_cultural_event" ||
+      activity.external_source === "seoul_fifty_plus")
+  ) {
+    return null;
+  }
+
   const headerStyles = { header: "bg-[#eef0fb]", title: "text-[#4558b5]" };
 
   return (

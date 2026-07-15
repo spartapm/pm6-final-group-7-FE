@@ -7,18 +7,29 @@ import {
   requestActivitySummary,
   setCachedSummary,
 } from "@/lib/ai-summary-queue";
-import { buildSummaryLead, isStaleAiSummary, truncateForCard } from "@/lib/ai-summary-display";
+import {
+  buildSummaryLead,
+  isStaleAiSummary,
+  shouldHideAiSummary,
+  truncateCardSummary,
+} from "@/lib/ai-summary-display";
 import { apiFetch } from "@/lib/api-client";
 import type { Activity, MeResponse } from "@/lib/types";
 
 export function needsAiSummaryGeneration(activity: Activity): boolean {
+  // 의도적 빈 요약은 재생성하지 않음
+  if (activity.ai_summary === "") return false;
+  if (shouldHideAiSummary(activity, activity.ai_summary) && activity.ai_summary === "") {
+    return false;
+  }
   return isStaleAiSummary(activity.ai_summary);
 }
 
 /** 세션 캐시 또는 활동에 이미 담긴 유효한 요약을 동기적으로 찾는다. */
 function resolveSeedSummary(activity: Activity): string | null {
   const cached = getCachedSummary(activity.id);
-  if (cached) return cached;
+  if (cached !== undefined && cached !== null) return cached;
+  if (activity.ai_summary === "") return "";
   const initial = activity.ai_summary?.trim();
   if (initial && !isStaleAiSummary(initial)) return initial;
   return null;
@@ -27,10 +38,9 @@ function resolveSeedSummary(activity: Activity): string | null {
 export function useAiSummary(activity: Activity) {
   const seed = resolveSeedSummary(activity);
   const [summary, setSummary] = useState<string | null>(seed);
-  const [loading, setLoading] = useState(seed ? false : needsAiSummaryGeneration(activity));
+  const [loading, setLoading] = useState(seed !== null ? false : needsAiSummaryGeneration(activity));
   const [error, setError] = useState(false);
 
-  // 문제2: 온보딩 중요 항목(급여·비용 등) 기반 서두를 요약 앞에 붙인다.
   const { data: me } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiFetch<MeResponse>("/me"),
@@ -39,23 +49,35 @@ export function useAiSummary(activity: Activity) {
   const lead = buildSummaryLead(activity, me?.onboarding ?? null);
 
   useEffect(() => {
-    // 이미 세션 캐시에 있으면 재요청 없이 즉시 사용 (탭/화면 전환 시 재로딩 방지)
     const cached = getCachedSummary(activity.id);
-    if (cached) {
+    if (cached !== undefined && cached !== null) {
       setSummary(cached);
       setLoading(false);
       setError(false);
       return;
     }
 
+    if (activity.ai_summary === "") {
+      setCachedSummary(activity.id, "");
+      setSummary("");
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
     const initial = activity.ai_summary?.trim();
-    const shouldGenerate = isStaleAiSummary(initial);
+    const shouldGenerate = isStaleAiSummary(activity.ai_summary);
 
     if (initial && !shouldGenerate) {
       setCachedSummary(activity.id, initial);
       setSummary(initial);
       setLoading(false);
       setError(false);
+      return;
+    }
+
+    if (!shouldGenerate && !initial) {
+      setLoading(false);
       return;
     }
 
@@ -81,12 +103,20 @@ export function useAiSummary(activity: Activity) {
     };
   }, [activity.id, activity.ai_summary]);
 
-  const summaryWithLead = summary ? `${lead}${summary}` : summary;
+  const hidden = shouldHideAiSummary(activity, summary);
+  const summaryWithLead =
+    summary && summary !== "" ? `${lead}${summary}` : summary === "" ? "" : summary;
 
   return {
     summary: summaryWithLead,
-    loading,
+    loading: hidden ? false : loading,
     error,
-    cardSummary: summary ? truncateForCard(`${lead}${summary}`) : null,
+    hidden,
+    cardSummary:
+      summaryWithLead && summaryWithLead !== ""
+        ? truncateCardSummary(activity, summaryWithLead)
+        : summaryWithLead === ""
+          ? ""
+          : null,
   };
 }
