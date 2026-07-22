@@ -1,0 +1,37 @@
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="22" height="22" fill="#F5F5F5"/>
+<g id="&#235;&#158;&#156;&#235;&#148;&#169; &#235;&#176;&#143; &#235;&#161;&#156;&#234;&#183;&#184;&#236;&#157;&#184;">
+<path d="M-184 -997.72C-184 -998.824 -183.105 -999.72 -182 -999.72H1043C1044.1 -999.72 1045 -998.824 1045 -997.72V2574.28C1045 2575.39 1044.1 2576.28 1043 2576.28H-182C-183.105 2576.28 -184 2575.38 -184 2574.28V-997.72Z" fill="#CCD0D7"/>
+<path d="M-182 -999.72V-998.72H1043V-999.72V-1000.72H-182V-999.72ZM1045 -997.72H1044V2574.28H1045H1046V-997.72H1045ZM1043 2576.28V2575.28H-182V2576.28V2577.28H1043V2576.28ZM-184 2574.28H-183V-997.72H-184H-185V2574.28H-184ZM-182 2576.28V2575.28C-182.552 2575.28 -183 2574.83 -183 2574.28H-184H-185C-185 2575.94 -183.657 2577.28 -182 2577.28V2576.28ZM1045 2574.28H1044C1044 2574.83 1043.55 2575.28 1043 2575.28V2576.28V2577.28C1044.66 2577.28 1046 2575.94 1046 2574.28H1045ZM1043 -999.72V-998.72C1043.55 -998.72 1044 -998.272 1044 -997.72H1045H1046C1046 -999.377 1044.66 -1000.72 1043 -1000.72V-999.72ZM-182 -999.72V-1000.72C-183.657 -1000.72 -185 -999.377 -185 -997.72H-184H-183C-183 -998.272 -182.552 -998.72 -182 -998.72V-999.72Z" fill="black" fill-opacity="0.1"/>
+<g id="Section">
+<rect width="430" height="774.75" transform="translate(-54 -223.75)" fill="white"/>
+<g id="Container">
+<g id="Overlay+Border+Shadow" filter="url(#filter0_d_0_1)">
+<rect x="-30" y="-118" width="382" height="206" rx="20" fill="white" fill-opacity="0.01" shape-rendering="crispEdges"/>
+<rect x="-29.5" y="-117.5" width="381" height="205" rx="19.5" stroke="#F1F1F5" shape-rendering="crispEdges"/>
+<g id="Container_2">
+<g id="Background">
+<rect x="-11" y="-11" width="44" height="44" rx="12" fill="#E0F2FE"/>
+<g id="SVG">
+<path id="Vector" d="M10.0833 17.4167C14.1334 17.4167 17.4167 14.1334 17.4167 10.0833C17.4167 6.03325 14.1334 2.75 10.0833 2.75C6.03325 2.75 2.75 6.03325 2.75 10.0833C2.75 14.1334 6.03325 17.4167 10.0833 17.4167Z" stroke="#0891B2" stroke-width="1.83333" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_2" d="M19.25 19.25L15.3083 15.3083" stroke="#0891B2" stroke-width="1.83333" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_0_1" x="-40" y="-126" width="402" height="226" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="2"/>
+<feGaussianBlur stdDeviation="5"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+</filter>
+</defs>
+</svg>
