@@ -62,9 +62,9 @@ export function SchedulePreviewCard({ items }: Props) {
             }}
             aria-hidden
           />
-          <p className="text-base font-extrabold text-text-primary">다가오는 내 일정</p>
+          <p className="text-[18px] font-bold text-[#141414]">다가오는 내 일정</p>
         </div>
-        <Link href="/calendar" className="text-sm font-semibold text-[#5c68b8]">
+        <Link href="/calendar" className="text-[16px] font-bold text-[#4b4ad1]">
           더보기 &gt;
         </Link>
       </div>

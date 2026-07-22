@@ -61,6 +61,10 @@ export default function SettingsCompletePage() {
           <br />
           맞춤 정보를 새로 준비할게요.
         </p>
+        {/* M-21 */}
+        <p className="mt-3 text-[15px] font-bold text-primary">
+          새로운 맞춤 정보는 홈에서 확인해보세요!
+        </p>
 
         {loading && (
           <p className="mt-6 text-sm font-semibold text-primary">맞춤 정보를 준비하고 있어요...</p>

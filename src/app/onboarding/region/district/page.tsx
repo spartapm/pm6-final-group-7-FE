@@ -3,39 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import { OnboardingNextButton, RegionNoticeBanner } from "@/components/onboarding/OnboardingRegionUI";
-import { apiFetch } from "@/lib/api-client";
-import { SEOUL_DISTRICTS } from "@/lib/onboarding";
-import type { MeResponse } from "@/lib/types";
+import { useOnboardingData } from "@/hooks/useOnboardingData";
+import { saveOnboardingPatch } from "@/lib/guest-onboarding";
+import { getDistrictsForCity, getCityByCode } from "@/lib/regions";
 
-/** SCR-002 구 선택 (Figma 1039:307) — 서울 선택 후 */
+/** SCR-002 구·시 선택 */
 export default function OnboardingDistrictPage() {
   const router = useRouter();
   const [district, setDistrict] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const onboarding = useOnboardingData();
 
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => apiFetch<MeResponse>("/me"),
-  });
+  const cityCode = onboarding?.region_city || "서울특별시";
+  const city = getCityByCode(cityCode);
+  const districts = getDistrictsForCity(cityCode);
+  const cityLabel = city?.label ?? "서울";
 
   useEffect(() => {
-    if (me?.onboarding?.region_district) setDistrict(me.onboarding.region_district);
-  }, [me]);
+    if (onboarding?.region_district) setDistrict(onboarding.region_district);
+  }, [onboarding]);
 
   async function handleNext() {
     if (!district) return;
     setLoading(true);
     try {
-      await apiFetch("/me/onboarding", {
-        method: "PATCH",
-        body: JSON.stringify({
-          region_city: "서울특별시",
-          region_district: district,
-          onboarding_step: "profile",
-        }),
+      await saveOnboardingPatch({
+        region_city: cityCode,
+        region_district: district,
+        onboarding_step: "profile",
       });
       router.push("/onboarding/profile");
     } finally {
@@ -48,17 +45,17 @@ export default function OnboardingDistrictPage() {
       <OnboardingStepProgress step="region_district" backHref="/onboarding/region" />
 
       <h1 className="text-2xl font-bold text-text-primary">어느 지역에 계세요?</h1>
-      <p className="mt-2 text-base text-[#9a9da8]">가까운 활동과 일자리를 찾아드려요</p>
+      <p className="mt-2 text-base text-[#9a9da8]">가까운 지역의 일자리와 활동을 추천해드려요.</p>
 
       <Link
         href="/onboarding/region"
         className="mt-4 inline-block text-base font-semibold text-primary-accent underline"
       >
-        ‹ 서울 다시 선택
+        ‹ {cityLabel} 다시 선택
       </Link>
 
       <div className="mt-6 grid grid-cols-3 gap-3">
-        {SEOUL_DISTRICTS.map((d) => {
+        {districts.map((d) => {
           const selected = district === d;
           return (
             <button

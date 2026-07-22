@@ -10,10 +10,36 @@ import type { MeResponse } from "@/lib/types";
 
 interface MyProfileCardProps {
   me: MeResponse | undefined;
+  isGuest?: boolean;
   onPersonalize: () => void;
 }
 
-export function MyProfileCard({ me, onPersonalize }: MyProfileCardProps) {
+export function MyProfileCard({ me, isGuest = false, onPersonalize }: MyProfileCardProps) {
+  if (isGuest) {
+    return (
+      <div className="rounded-2xl bg-white p-5 shadow-[0_4px_24px_rgba(91,109,191,0.12)]">
+        <div className="flex gap-4">
+          <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-[#eef0f8] text-3xl text-[#9ca0ac]">
+            👤
+          </div>
+          <div className="min-w-0 flex-1 pt-1">
+            <p className="text-[20px] font-bold text-[#1c1c27]">게스트</p>
+            <p className="mt-1 text-[15px] leading-relaxed text-[#9096a6]">
+              로그인하면 맞춤 정보를 관리할 수 있어요.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onPersonalize}
+          className="mt-4 w-full rounded-2xl bg-primary py-3.5 text-[16px] font-bold text-white"
+        >
+          개인화 설정 변경하기
+        </button>
+      </div>
+    );
+  }
+
   const nickname = me?.profile?.nickname ?? "회원";
   const demographics = formatDemographics(me?.onboarding?.gender, me?.onboarding?.age_band);
   const region = formatRegion(me?.onboarding?.region_district);

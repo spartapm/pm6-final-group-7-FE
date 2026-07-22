@@ -14,6 +14,7 @@ import {
   type LearningTheme,
 } from "@/lib/learning-detail";
 import { AiSummarySection } from "@/components/activity/AiSummarySection";
+import { BookmarkActionButton } from "@/components/activity/BookmarkActionButton";
 import { getApplyButtonLabel } from "@/lib/apply-url";
 import type { Activity } from "@/lib/types";
 
@@ -97,12 +98,8 @@ export function LearningDetailView({
           <h1 className="min-w-0 flex-1 truncate text-[20px] font-bold text-[#1e2939]">
             {activity.title}
           </h1>
-          <button
-            type="button"
-            aria-label="공유"
-            onClick={onShare}
-            className="rounded-2xl border border-[#e5e7eb] p-3"
-          >
+          {/* M-3: 회색 배경 없이 아이콘만 */}
+          <button type="button" aria-label="공유" onClick={onShare} className="p-2">
             <Image src={ASSETS.iconShare} alt="" width={20} height={20} />
           </button>
         </div>
@@ -131,8 +128,7 @@ export function LearningDetailView({
             </h2>
 
             <div className="mt-3 flex items-center gap-1.5 text-[14px] font-semibold text-[#364153]">
-              <span aria-hidden>🏢</span>
-              {activity.org_name}
+                            {activity.org_name}
             </div>
             {activity.region_district && (
               <div className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[#4a5565]">
@@ -168,8 +164,7 @@ export function LearningDetailView({
                 <div className="flex min-w-0 flex-1 items-center px-4 py-3">
                   {row.withPin ? (
                     <span className="flex items-center gap-1 text-[14px] text-[#1e2939]">
-                      <span aria-hidden>📍</span>
-                      {row.value}
+                                            {row.value}
                     </span>
                   ) : row.withClock ? (
                     <span className="flex items-center gap-1 text-[14px] text-[#1e2939]">
@@ -221,20 +216,12 @@ export function LearningDetailView({
       </div>
 
       <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-2 border-t border-[#e5e7eb] bg-white px-4 py-2.5 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
-        <button
-          type="button"
+        <BookmarkActionButton
+          bookmarked={Boolean(activity.bookmarked)}
           disabled={loading || isExpired}
           onClick={onBookmark}
-          className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border-[1.5px] text-2xl ${
-            activity.bookmarked ? "text-red-500" : "text-[#9aa0a8]"
-          }`}
-          style={{
-            borderColor: activity.bookmarked ? theme.accentBorder : "#e5e7eb",
-          }}
-          aria-label="찜하기"
-        >
-          {activity.bookmarked ? "♥" : "♡"}
-        </button>
+          accentBorder={theme.accentBorder}
+        />
         <button
           type="button"
           disabled={isExpired}

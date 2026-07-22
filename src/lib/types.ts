@@ -4,8 +4,10 @@ export interface Activity {
   id: string;
   category: ActivityCategory;
   external_source?: string;
+  external_id?: string;
   title: string;
   org_name: string;
+  region_city?: string | null;
   region_district: string | null;
   apply_start: string | null;
   apply_end: string | null;

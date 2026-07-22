@@ -4,6 +4,9 @@ export const SEOUL_DISTRICTS = [
   "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구",
 ];
 
+// 하위 호환 — 확장 지역은 @/lib/regions 사용
+export { SUPPORTED_CITIES, getDistrictsForCity, getAllSupportedDistricts } from "@/lib/regions";
+
 export const AGE_BANDS = ["50세 미만", "50~54세", "55~59세", "60~64세", "65~69세", "70~74세", "75~79세", "80세 이상"];
 export const CAREER_YEARS = ["1년 미만", "1~5년", "5~10년", "10~20년", "20년 이상"];
 export const EDUCATION_LEVELS = ["중졸 이하", "고졸", "대졸 이상"];
@@ -267,6 +270,8 @@ export function getOnboardingFlow(): OnboardingFlow {
 export function clearOnboardingFlow() {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(ONBOARDING_FLOW_KEY);
+  // 진행률 래칫도 함께 초기화 (재진입 시 새로 시작)
+  sessionStorage.removeItem("obMaxPct");
 }
 
 export function getOnboardingCompletePath(): string {

@@ -2,18 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import {
   OnboardingChip,
   OnboardingNextButton,
   OnboardingSectionLabel,
 } from "@/components/onboarding/OnboardingUI";
-import { apiFetch } from "@/lib/api-client";
+import { useOnboardingData } from "@/hooks/useOnboardingData";
+import { saveOnboardingPatch } from "@/lib/guest-onboarding";
 import { AGE_BANDS, CAREER_JOBS, CAREER_YEARS, EDUCATION_LEVELS } from "@/lib/onboarding";
-import type { MeResponse } from "@/lib/types";
 
-/** SCR-003 기본 정보 (Figma 1040:466) */
+/** SCR-003 기본 정보 (Figma 1:4583) */
 export default function OnboardingProfilePage() {
   const router = useRouter();
   const [ageBand, setAgeBand] = useState<string | null>(null);
@@ -23,19 +22,16 @@ export default function OnboardingProfilePage() {
   const [education, setEducation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => apiFetch<MeResponse>("/me"),
-  });
+  const onboarding = useOnboardingData();
 
   useEffect(() => {
-    if (!me?.onboarding) return;
-    setAgeBand(me.onboarding.age_band ?? null);
-    setGender(me.onboarding.gender ?? null);
-    setCareerJob(me.onboarding.career_job_code ?? null);
-    setCareerYears(me.onboarding.career_years ?? null);
-    setEducation(me.onboarding.education ?? null);
-  }, [me]);
+    if (!onboarding) return;
+    setAgeBand(onboarding.age_band ?? null);
+    setGender(onboarding.gender ?? null);
+    setCareerJob(onboarding.career_job_code ?? null);
+    setCareerYears(onboarding.career_years ?? null);
+    setEducation(onboarding.education ?? null);
+  }, [onboarding]);
 
   const careerYearsOptional = careerJob === "homemaker" || careerJob === "no_experience";
   const valid = ageBand && gender && careerJob && (careerYearsOptional || careerYears);
@@ -44,16 +40,13 @@ export default function OnboardingProfilePage() {
     if (!valid) return;
     setLoading(true);
     try {
-      await apiFetch("/me/onboarding", {
-        method: "PATCH",
-        body: JSON.stringify({
-          age_band: ageBand,
-          gender,
-          career_job_code: careerJob,
-          career_years: careerYears,
-          education,
-          onboarding_step: "interests",
-        }),
+      await saveOnboardingPatch({
+        age_band: ageBand,
+        gender,
+        career_job_code: careerJob,
+        career_years: careerYears,
+        education,
+        onboarding_step: "interests",
       });
       router.push("/onboarding/interests");
     } finally {

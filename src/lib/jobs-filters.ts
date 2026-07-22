@@ -1,6 +1,13 @@
-import { CAREER_JOBS, SEOUL_DISTRICTS } from "@/lib/onboarding";
+import { CAREER_JOBS } from "@/lib/onboarding";
+import { getAllSupportedDistricts } from "@/lib/regions";
+import { normalizeWorkDays } from "@/lib/workDaysNormalize";
 import type { Activity } from "@/lib/types";
 import { differenceInCalendarDays, parseISO } from "date-fns";
+
+const REGION_DISTRICT_OPTIONS = [
+  { value: "", label: "전체" },
+  ...getAllSupportedDistricts().map((d) => ({ value: d, label: d })),
+];
 
 export type FilterLayout = "list" | "chips";
 
@@ -30,7 +37,7 @@ export const JOB_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: [{ value: "", label: "전체" }, ...SEOUL_DISTRICTS.map((d) => ({ value: d, label: d }))],
+    options: REGION_DISTRICT_OPTIONS,
   },
   {
     id: "workType",
@@ -112,7 +119,7 @@ export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: [{ value: "", label: "전체" }, ...SEOUL_DISTRICTS.map((d) => ({ value: d, label: d }))],
+    options: REGION_DISTRICT_OPTIONS,
   },
   {
     id: "applyStatus",
@@ -172,17 +179,26 @@ function matchField(activity: Activity, value: string): boolean {
 }
 
 function matchIndustry(activity: Activity, value: string): boolean {
+  const job = CAREER_JOBS.find((j) => j.label === value);
+  const code = job?.code;
   const tags = activity.attributes?.onboarding_job_tags;
   if (Array.isArray(tags) && tags.length > 0) {
-    const code = CAREER_JOBS.find((j) => j.label === value)?.code;
     if (code && tags.includes(code)) return true;
     if (tags.includes(value)) return true;
-    // 태그가 있는데 선택 업종과 불일치하면 제외 (unmapped만 있으면 미매칭)
     return false;
   }
-  const label = attr(activity, "industry") || attr(activity, "job_category");
-  if (!label) return true;
-  return label === value;
+  // 목업/필터_업종 필드
+  const filterIndustry = attr(activity, "filter_industry") || attr(activity, "industry") || attr(activity, "job_category");
+  if (filterIndustry) {
+    if (filterIndustry === value) return true;
+    // 라벨 변형: 경영·금융·사무·보험 ↔ 경영/금융/사무/보험
+    const norm = (s: string) => s.replace(/[·/]/g, "");
+    if (norm(filterIndustry) === norm(value)) return true;
+    if (job && norm(filterIndustry).includes(norm(job.label.replace(/\//g, "·")))) return true;
+  }
+  // 태그 없고 업종도 없으면 필터 미적용(통과하지 않음 — 업종 선택 시 관련 공고만)
+  if (!filterIndustry) return false;
+  return false;
 }
 
 /** 그룹 내 OR: 선택된 값 중 하나라도 matcher를 만족하면 통과. 미선택(빈 배열)이면 통과. */
@@ -215,8 +231,14 @@ export function filterActivities(
 
       if (
         !groupMatch(filters.workDays, (v) => {
+          const chip =
+            attr(activity, "work_days_normalized") ||
+            attr(activity, "work_days_chip") ||
+            normalizeWorkDays(attr(activity, "work_days")) ||
+            "";
           const wd = attr(activity, "work_days");
-          return !wd || wd === v;
+          if (!chip && !wd) return true;
+          return chip === v || wd === v || wd.includes(v.replace("주 ", ""));
         })
       )
         return false;

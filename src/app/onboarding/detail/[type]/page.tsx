@@ -2,10 +2,10 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import { OnboardingCheckboxCard, OnboardingNextButton } from "@/components/onboarding/OnboardingUI";
-import { apiFetch } from "@/lib/api-client";
+import { useOnboardingData } from "@/hooks/useOnboardingData";
+import { saveOnboardingPatch } from "@/lib/guest-onboarding";
 import {
   CAREER_JOBS,
   HOBBY_OPTIONS,
@@ -14,7 +14,6 @@ import {
   getDetailBackHref,
   getImportantStepKey,
 } from "@/lib/onboarding";
-import type { MeResponse } from "@/lib/types";
 
 const META: Record<string, { title: string; subtitle: string }> = {
   job: {
@@ -31,7 +30,7 @@ const META: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-/** SCR-005~007 상세 선택 (Figma 1040:649 / 885 / 1280) */
+/** SCR-005~007 상세 선택 (Figma 1:4693 / 1:4895 / 1:5250) */
 export default function OnboardingDetailPage({
   params,
 }: {
@@ -42,14 +41,11 @@ export default function OnboardingDetailPage({
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => apiFetch<MeResponse>("/me"),
-  });
+  const onboarding = useOnboardingData();
 
   const meta = META[type] ?? META.job;
-  const directions = me?.onboarding?.interest_directions ?? [];
-  const prevCareerLabel = getCareerJobLabel(me?.onboarding?.career_job_code);
+  const directions = onboarding?.interest_directions ?? [];
+  const prevCareerLabel = getCareerJobLabel(onboarding?.career_job_code);
 
   const options =
     type === "job"
@@ -68,9 +64,9 @@ export default function OnboardingDetailPage({
     type === "job" ? "job_preferences" : type === "hobby" ? "hobby_preferences" : "learning_preferences";
 
   useEffect(() => {
-    const prefs = me?.onboarding?.[prefKey] as { interests?: string[] } | undefined;
+    const prefs = onboarding?.[prefKey] as { interests?: string[] } | undefined;
     if (prefs?.interests && prefs.interests.length > 0) setSelected(prefs.interests);
-  }, [me, prefKey]);
+  }, [onboarding, prefKey]);
 
   function toggle(v: string) {
     setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
@@ -80,12 +76,9 @@ export default function OnboardingDetailPage({
     if (selected.length === 0) return;
     setLoading(true);
     try {
-      await apiFetch("/me/onboarding", {
-        method: "PATCH",
-        body: JSON.stringify({
-          [prefKey]: { interests: selected },
-          onboarding_step: getImportantStepKey(type),
-        }),
+      await saveOnboardingPatch({
+        [prefKey]: { interests: selected },
+        onboarding_step: getImportantStepKey(type),
       });
       router.push(`/onboarding/important/${type}`);
     } finally {

@@ -6,7 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, devLogin } from "@/lib/api-client";
 import { enableDevSession, useDevAuthSession } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
+import { getGuestOnboarding, syncGuestOnboarding } from "@/lib/guest-onboarding";
 import { getOnboardingPath } from "@/lib/onboarding";
+import { safeNextPath } from "@/lib/auth-redirect";
 import { ASSETS } from "@/lib/assets";
 import type { MeResponse } from "@/lib/types";
 
@@ -24,16 +26,24 @@ function LoginForm() {
   }, [searchParams]);
 
   async function afterLogin() {
+    const requestedNext = safeNextPath(searchParams.get("next"));
     try {
+      // 게스트로 진행한 온보딩 답변을 서버에 반영한 뒤 이동
+      await syncGuestOnboarding();
       const me = await apiFetch<MeResponse>("/me");
       if (!me.onboarding?.onboarding_completed_at) {
+        // 온보딩 경로로 복귀 요청이 있으면 존중
+        if (requestedNext.startsWith("/onboarding")) {
+          router.push(requestedNext);
+          return;
+        }
         router.push(getOnboardingPath(me.onboarding?.onboarding_step ?? "region"));
         return;
       }
     } catch {
-      // fall through to home
+      // fall through
     }
-    router.push("/home");
+    router.push(requestedNext);
   }
 
   async function handleDevLogin() {
@@ -57,9 +67,17 @@ function LoginForm() {
       return;
     }
     const supabase = createClient();
+    // URL next 우선, 없으면 게스트 온보딩 단계로 복귀
+    const fromQuery = searchParams.get("next");
+    const guest = getGuestOnboarding();
+    const fallbackNext = guest?.onboarding_step
+      ? getOnboardingPath(guest.onboarding_step)
+      : null;
+    const nextPath = safeNextPath(fromQuery ?? fallbackNext, "/home");
+    const next = `?next=${encodeURIComponent(nextPath)}`;
     await supabase.auth.signInWithOAuth({
       provider: "kakao",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${next}` },
     });
   }
 
@@ -88,6 +106,19 @@ function LoginForm() {
       >
         <span className="text-xl">💬</span>
         {loading ? "로그인 중..." : devMode ? "개발 로그인 (카카오 대체)" : "카카오톡으로 시작하기"}
+      </button>
+
+      {/* M-22: 이메일 로그인 진입 링크 */}
+      <button
+        type="button"
+        onClick={() => {
+          const next = searchParams.get("next");
+          const q = next ? `?next=${encodeURIComponent(next)}` : "";
+          router.push(`/login/email${q}`);
+        }}
+        className="mx-auto mt-4 block text-[15px] font-semibold text-text-muted underline underline-offset-4"
+      >
+        이메일로 로그인하기
       </button>
 
       <p className="mt-6 text-center text-[13px] text-text-muted">

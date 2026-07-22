@@ -1,6 +1,6 @@
 "use client";
 
-import { format, isSameMonth, isToday } from "date-fns";
+import { format, isSameMonth, isToday, getDay } from "date-fns";
 import {
   buildMonthDots,
   CATEGORY_DOT_COLORS,
@@ -17,6 +17,8 @@ interface Props {
   onSelectDate: (date: string | null) => void;
   category?: string;
   appliedOnly?: boolean;
+  /** 시안: 접힘 시 약 2주만 표시 */
+  collapsed?: boolean;
 }
 
 export function CalendarGrid({
@@ -26,8 +28,10 @@ export function CalendarGrid({
   onSelectDate,
   category,
   appliedOnly,
+  collapsed = false,
 }: Props) {
   const days = getMonthGridDays(month);
+  const visibleDays = collapsed ? days.slice(0, 14) : days;
   const dots = buildMonthDots(items, month, { category, appliedOnly });
 
   function handleDayClick(day: Date) {
@@ -36,21 +40,39 @@ export function CalendarGrid({
   }
 
   return (
-    <div className="mx-5 rounded-2xl bg-white p-4 shadow-sm">
-      <div className="mb-2 grid grid-cols-7 gap-1">
-        {WEEKDAYS.map((d) => (
-          <div key={d} className="py-1 text-center text-xs font-semibold text-[#9aa0a8]">
+    <div className="mx-5 rounded-2xl bg-white px-3 pb-2 pt-3 shadow-sm">
+      {/* 시안: 범례는 캘린더 카드 안 우측 상단 */}
+      <div className="mb-2 flex items-center justify-end gap-3 px-1 text-[11px] text-[#6b7280]">
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#1c1c27]" />
+          오늘
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-[#c5c9d4]" />
+          신청 마감일
+        </span>
+      </div>
+
+      <div className="mb-1 grid grid-cols-7 gap-0.5">
+        {WEEKDAYS.map((d, i) => (
+          <div
+            key={d}
+            className={`py-1 text-center text-xs font-semibold ${
+              i === 0 ? "text-[#e85d5d]" : i === 6 ? "text-[#5b7fd6]" : "text-[#9aa0a8]"
+            }`}
+          >
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day) => {
+      <div className="grid grid-cols-7 gap-0.5">
+        {visibleDays.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const inMonth = isSameMonth(day, month);
           const today = isToday(day);
           const selected = selectedDate === key;
           const dayDots = dots.get(key) ?? [];
+          const dow = getDay(day);
 
           return (
             <button
@@ -58,8 +80,8 @@ export function CalendarGrid({
               type="button"
               onClick={() => inMonth && handleDayClick(day)}
               disabled={!inMonth}
-              className={`flex min-h-[52px] flex-col items-center rounded-xl py-1.5 ${
-                !inMonth ? "opacity-30" : selected ? "bg-primary/10" : "hover:bg-gray-50"
+              className={`flex min-h-[48px] flex-col items-center rounded-xl py-1 ${
+                !inMonth ? "opacity-30" : ""
               }`}
               aria-label={format(day, "M월 d일")}
               aria-pressed={selected}
@@ -67,16 +89,22 @@ export function CalendarGrid({
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
                   today
-                    ? "bg-primary text-white"
-                    : inMonth
-                      ? "text-[#1c1c27]"
-                      : "text-[#c7c7d1]"
-                } ${selected && !today ? "ring-2 ring-primary/40" : ""}`}
+                    ? "bg-[#1c1c27] text-white"
+                    : selected
+                      ? "bg-primary text-white"
+                      : !inMonth
+                        ? "text-[#c7c7d1]"
+                        : dow === 0
+                          ? "text-[#e85d5d]"
+                          : dow === 6
+                            ? "text-[#5b7fd6]"
+                            : "text-[#1c1c27]"
+                }`}
               >
                 {format(day, "d")}
               </span>
-              <span className="mt-0.5 flex h-2 items-center justify-center gap-0.5">
-                {dayDots.slice(0, 3).map((cat) => (
+              <span className="mt-0.5 flex min-h-2 w-5 flex-wrap items-center justify-center gap-0.5">
+                {dayDots.slice(0, 4).map((cat) => (
                   <span
                     key={cat}
                     className="h-1.5 w-1.5 rounded-full"
@@ -88,24 +116,6 @@ export function CalendarGrid({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-export function CalendarLegend() {
-  return (
-    <div className="mx-5 mt-3 flex flex-wrap items-center gap-4 px-1 text-xs text-[#6b7280]">
-      <span className="flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-full bg-primary" />
-        오늘
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="flex gap-0.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#16a34a]" />
-        </span>
-        신청 마감일
-      </span>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import {
   OnboardingFollowUpChips,
@@ -10,16 +9,16 @@ import {
   OnboardingRadioCard,
   OnboardingTimeDayFollowUp,
 } from "@/components/onboarding/OnboardingUI";
-import { apiFetch } from "@/lib/api-client";
+import { useOnboardingData } from "@/hooks/useOnboardingData";
+import { saveOnboardingPatch } from "@/lib/guest-onboarding";
 import {
   IMPORTANT_CONFIG,
   getImportantBackHref,
   getNextAfterImportant,
   getOnboardingCompletePath,
 } from "@/lib/onboarding";
-import type { MeResponse } from "@/lib/types";
 
-/** SCR-008~010 중요 정보 + 조건부 질문 (Figma 1040:707 등) */
+/** SCR-008~010 중요 정보 + 조건부 질문 (Figma 1:4741 등) */
 export default function OnboardingImportantPage({
   params,
 }: {
@@ -36,18 +35,15 @@ export default function OnboardingImportantPage({
   });
   const [loading, setLoading] = useState(false);
 
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => apiFetch<MeResponse>("/me"),
-  });
+  const onboarding = useOnboardingData();
 
-  const directions = me?.onboarding?.interest_directions ?? [];
+  const directions = onboarding?.interest_directions ?? [];
   const infoKey =
     type === "job" ? "important_job_info" : type === "hobby" ? "important_hobby_info" : "important_learning_info";
 
   useEffect(() => {
-    if (!me?.onboarding) return;
-    const info = (me.onboarding as unknown as Record<string, unknown>)[infoKey] as
+    if (!onboarding) return;
+    const info = (onboarding as unknown as Record<string, unknown>)[infoKey] as
       | Record<string, unknown>
       | undefined;
     const savedPriority = info?.priority;
@@ -64,7 +60,7 @@ export default function OnboardingImportantPage({
       const val = info?.[fu.key];
       if (typeof val === "string") setFollowUp({ [fu.key]: val });
     }
-  }, [me, infoKey, config]);
+  }, [onboarding, infoKey, config]);
 
   const activeFollowUp = priority ? config.followUps[priority] : null;
 
@@ -98,12 +94,9 @@ export default function OnboardingImportantPage({
         payload[activeFollowUp.key] = followUp[activeFollowUp.key];
       }
 
-      await apiFetch("/me/onboarding", {
-        method: "PATCH",
-        body: JSON.stringify({
-          [infoKey]: payload,
-          onboarding_step: next === "complete" ? "complete" : next.step,
-        }),
+      await saveOnboardingPatch({
+        [infoKey]: payload,
+        onboarding_step: next === "complete" ? "complete" : next.step,
       });
 
       if (next === "complete") {

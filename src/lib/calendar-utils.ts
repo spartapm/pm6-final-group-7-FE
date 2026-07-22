@@ -19,21 +19,22 @@ export interface CalendarItem {
   applied: boolean;
 }
 
+// M-8: 카테고리 컬러 (채용/지원/교육/취미)
 export const CATEGORY_DOT_COLORS: Record<ActivityCategory, string> = {
-  job: "#2563eb",
-  support: "#16a34a",
-  education: "#7c3aed",
-  hobby: "#ea580c",
+  job: "#6D82E3",
+  support: "#5FAE8A",
+  education: "#D87A9A",
+  hobby: "#E59B55",
 };
 
 export const CATEGORY_TAG_STYLES: Record<
   ActivityCategory,
   { bg: string; text: string }
 > = {
-  job: { bg: "bg-[#dbeafe]", text: "text-[#1d4ed8]" },
-  support: { bg: "bg-[#dcfce7]", text: "text-[#15803d]" },
-  education: { bg: "bg-[#ede9fe]", text: "text-[#6d28d9]" },
-  hobby: { bg: "bg-[#fff7ed]", text: "text-[#c2410c]" },
+  job: { bg: "bg-[#eef1fc]", text: "text-[#5065c4]" },
+  support: { bg: "bg-[#e9f5ef]", text: "text-[#3f8a67]" },
+  education: { bg: "bg-[#fbeef3]", text: "text-[#c25c84]" },
+  hobby: { bg: "bg-[#fdf3e6]", text: "text-[#c97f2f]" },
 };
 
 export function getCalendarDate(activity: Activity): string | null {
@@ -107,6 +108,61 @@ export function buildMonthDots(
   }
 
   return dots;
+}
+
+/**
+ * 연간 스크롤 뷰: 1~12월 섹션별 아이템을 그룹핑.
+ * - 마감일(apply_end)이 있는 항목은 해당 월 섹션에 정렬되어 배치
+ * - 상시접수(마감일 없음) 항목은 데이터가 있는 월 섹션 끝에만 노출 (M-7)
+ * - 상시접수만 있으면 해당 연도 오늘 달(또는 1월)에만 배치
+ */
+export function groupCalendarItemsByMonth(
+  items: CalendarItem[],
+  year: number,
+  options?: { category?: string; appliedOnly?: boolean }
+): CalendarItem[][] {
+  let filtered = items;
+  if (options?.appliedOnly) {
+    filtered = filtered.filter((item) => item.applied);
+  }
+  if (options?.category && options.category !== "all") {
+    filtered = filtered.filter((item) => item.activity.category === options.category);
+  }
+
+  const alwaysOpen = filtered.filter((item) => !getCalendarDate(item.activity));
+  const months: CalendarItem[][] = Array.from({ length: 12 }, () => []);
+
+  for (const item of filtered) {
+    const dateStr = getCalendarDate(item.activity);
+    if (!dateStr) continue;
+    const d = parseISO(dateStr);
+    if (d.getFullYear() !== year) continue;
+    months[d.getMonth()].push(item);
+  }
+
+  const sorted = months.map((list) =>
+    list.sort((a, b) =>
+      (a.activity.apply_end ?? "").localeCompare(b.activity.apply_end ?? "")
+    )
+  );
+
+  const monthsWithDated = sorted
+    .map((list, i) => (list.length > 0 ? i : -1))
+    .filter((i) => i >= 0);
+
+  if (alwaysOpen.length === 0) return sorted;
+
+  if (monthsWithDated.length === 0) {
+    const today = new Date();
+    const fallback =
+      today.getFullYear() === year ? today.getMonth() : 0;
+    sorted[fallback] = [...alwaysOpen];
+    return sorted;
+  }
+
+  return sorted.map((list, i) =>
+    monthsWithDated.includes(i) ? [...list, ...alwaysOpen] : list
+  );
 }
 
 export function getMonthGridDays(month: Date): Date[] {

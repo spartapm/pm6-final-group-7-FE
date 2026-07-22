@@ -1,12 +1,16 @@
-import { SEOUL_DISTRICTS } from "@/lib/onboarding";
+import { getAllSupportedDistricts } from "@/lib/regions";
 import type { Activity } from "@/lib/types";
 import { matchesApplyStatus } from "@/lib/jobs-filters";
 import type { FilterDefinition } from "@/lib/jobs-filters";
+import { isAdultOrientedActivity } from "@/lib/adultTargetFilter";
 
 /** 그룹별 다중 선택 배열 (list=체크 다중, chips=라디오 단일 0~1개) */
 export type LearningFilterValues = Record<string, string[]>;
 
-const REGION_OPTIONS = [{ value: "", label: "전체" }, ...SEOUL_DISTRICTS.map((d) => ({ value: d, label: d }))];
+const REGION_OPTIONS = [
+  { value: "", label: "전체" },
+  ...getAllSupportedDistricts().map((d) => ({ value: d, label: d })),
+];
 
 const COST_CHIP_OPTIONS = [
   { value: "", label: "전체" },
@@ -81,6 +85,7 @@ export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
       { value: "여행", label: "여행" },
       { value: "봉사·나눔", label: "봉사·나눔" },
       { value: "사진·영상", label: "사진·영상" },
+      { value: "기타", label: "기타" },
     ],
   },
   {
@@ -119,6 +124,14 @@ function matchCost(activity: Activity, value: string): boolean {
 function matchLearningField(activity: Activity, value: string): boolean {
   const primary = attr(activity, "field") || attr(activity, "field_primary");
   const secondary = attr(activity, "field_secondary");
+  if (value === "기타") {
+    const known = new Set([
+      "미술·공예", "운동·건강", "음악·공연", "여행", "봉사·나눔", "사진·영상",
+      "문화·관람", "나들이·체험", "체험·배움",
+    ]);
+    if (!primary && !secondary) return true;
+    return !known.has(primary) && !known.has(secondary);
+  }
   if (primary === value || secondary === value) return true;
   const tags = activity.attributes?.tags;
   if (Array.isArray(tags) && tags.some((t) => t === value)) return true;
@@ -137,6 +150,8 @@ export function filterLearningActivities(
   filters: LearningFilterValues
 ): Activity[] {
   return items.filter((activity) => {
+    if (!isAdultOrientedActivity(activity)) return false;
+
     if (!groupMatch(filters.field, (v) => matchLearningField(activity, v))) return false;
 
     if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;

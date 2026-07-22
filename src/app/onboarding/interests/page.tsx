@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { OnboardingStepProgress } from "@/components/onboarding/OnboardingStepProgress";
 import {
   OnboardingCategoryTag,
   OnboardingNextButton,
 } from "@/components/onboarding/OnboardingUI";
+import { useOnboardingData } from "@/hooks/useOnboardingData";
+import { saveOnboardingPatch } from "@/lib/guest-onboarding";
 import { getDetailStepKey, getOrderedDirections } from "@/lib/onboarding";
-import { apiFetch } from "@/lib/api-client";
-import type { MeResponse } from "@/lib/types";
 
 const OPTIONS = [
   { id: "job", emoji: "💼", title: "다시 일하고 싶어요", tag: "재취업·소득활동" },
@@ -18,21 +17,18 @@ const OPTIONS = [
   { id: "learning", emoji: "📚", title: "무언가를 배우고 싶어요", tag: "배움·자기계발" },
 ];
 
-/** SCR-004 관심 방향 (Figma 1040:614) */
+/** SCR-004 관심 방향 (Figma 1:4665) */
 export default function OnboardingInterestsPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: () => apiFetch<MeResponse>("/me"),
-  });
+  const onboarding = useOnboardingData();
 
   useEffect(() => {
-    const dirs = me?.onboarding?.interest_directions;
+    const dirs = onboarding?.interest_directions;
     if (dirs && dirs.length > 0) setSelected(dirs);
-  }, [me]);
+  }, [onboarding]);
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -44,12 +40,9 @@ export default function OnboardingInterestsPage() {
     try {
       const ordered = getOrderedDirections(selected);
       const first = ordered[0];
-      await apiFetch("/me/onboarding", {
-        method: "PATCH",
-        body: JSON.stringify({
-          interest_directions: ordered,
-          onboarding_step: getDetailStepKey(first),
-        }),
+      await saveOnboardingPatch({
+        interest_directions: ordered,
+        onboarding_step: getDetailStepKey(first),
       });
       router.push(`/onboarding/detail/${first}`);
     } finally {

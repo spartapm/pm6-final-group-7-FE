@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingPath } from "@/lib/onboarding";
+import { safeNextPath } from "@/lib/auth-redirect";
 import type { MeResponse } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 /** 온보딩 완료 여부에 따라 로그인 후 도착지 결정 (미완료 시 온보딩으로 직행) */
 async function resolvePostLoginPath(token: string, requestedNext: string | null): Promise<string> {
+  const next = safeNextPath(requestedNext, "/home");
+  // 게스트 온보딩 복귀: 클라이언트가 지정한 온보딩 경로는 그대로 존중
+  if (next.startsWith("/onboarding")) return next;
   try {
     const meRes = await fetch(`${API_BASE_URL}/me`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -20,7 +24,7 @@ async function resolvePostLoginPath(token: string, requestedNext: string | null)
   } catch {
     // fall through to requested/default
   }
-  return requestedNext ?? "/home";
+  return next;
 }
 
 export async function GET(request: Request) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { MyProfileCard } from "@/components/my/MyProfileCard";
@@ -13,21 +13,62 @@ import { useToast } from "@/components/ui/Toast";
 import { openCustomerCenter } from "@/lib/customer-center";
 import { apiFetch } from "@/lib/api-client";
 import { clearDevSession, useDevAuthSession } from "@/lib/constants";
+import {
+  getGuestOnboarding,
+  isGuestOnboardingComplete,
+  normalizeGuestOnboarding,
+} from "@/lib/guest-onboarding";
 import { createClient } from "@/lib/supabase/client";
 import type { MeResponse } from "@/lib/types";
+import { useAuthAction } from "@/providers/AuthActionProvider";
 
 export default function MyPage() {
   const router = useRouter();
   const devMode = useDevAuthSession();
   const { show: showToast } = useToast();
+  const { requireAuth } = useAuthAction();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [guestOb, setGuestOb] = useState(() =>
+    typeof window !== "undefined" ? getGuestOnboarding() : null
+  );
 
-  const { data: me } = useQuery({
+  useEffect(() => {
+    setGuestOb(getGuestOnboarding());
+  }, []);
+
+  const {
+    data: me,
+    isLoading: meLoading,
+    isError: meError,
+  } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiFetch<MeResponse>("/me"),
+    retry: false,
   });
+
+  const isGuest = !meLoading && (meError || !me);
+  const guestComplete = isGuest && isGuestOnboardingComplete(guestOb);
+  const guestMe = useMemo((): MeResponse | undefined => {
+    if (!guestComplete) return undefined;
+    const onboarding = normalizeGuestOnboarding(guestOb);
+    if (!onboarding) return undefined;
+    return {
+      profile: {
+        id: "guest",
+        nickname: "오육이",
+        email: null,
+        phone: null,
+        status: "active",
+      },
+      onboarding,
+      preferences: {},
+      pending_apply_activity_id: null,
+    };
+  }, [guestComplete, guestOb]);
+
+  const displayMe = me ?? guestMe;
 
   async function endSession() {
     if (devMode) {
@@ -49,6 +90,28 @@ export default function MyPage() {
     router.push("/");
   }
 
+  function handlePersonalize() {
+    void requireAuth(
+      () => {
+        setOnboardingFlow("settings");
+        router.push("/onboarding/region");
+      },
+      {
+        reason: "personalize",
+        returnTo: "/my",
+        intent: { type: "personalize" },
+      }
+    );
+  }
+
+  function handleProfile() {
+    void requireAuth(() => router.push("/my/profile"), {
+      reason: "profile",
+      returnTo: "/my/profile",
+      intent: { type: "navigate", path: "/my/profile" },
+    });
+  }
+
   return (
     <div className="min-h-full bg-[#f8f9fc] pb-6">
       <header className="gradient-header px-6 pb-28 pt-8">
@@ -57,18 +120,16 @@ export default function MyPage() {
 
       <div className="relative z-10 -mt-24 px-5">
         <MyProfileCard
-          me={me}
-          onPersonalize={() => {
-            setOnboardingFlow("settings");
-            router.push("/onboarding/region");
-          }}
+          me={displayMe}
+          isGuest={isGuest && !guestComplete}
+          onPersonalize={handlePersonalize}
         />
       </div>
 
       <div className="mt-4 space-y-4 px-5">
         <MyMenuSection title="계정 관리">
           <MyMenuItem
-            href="/my/profile"
+            onClick={handleProfile}
             iconBg="#e8f0fe"
             icon={<span className="text-base">✏️</span>}
             title="프로필 수정"
@@ -78,14 +139,34 @@ export default function MyPage() {
 
         <MyMenuSection title="알림 · 지원">
           <MyMenuItem
-            href="/my/notifications-settings"
+            href={isGuest ? undefined : "/my/notifications-settings"}
+            onClick={
+              isGuest
+                ? () =>
+                    void requireAuth(() => router.push("/my/notifications-settings"), {
+                      reason: "notification",
+                      returnTo: "/my/notifications-settings",
+                      intent: { type: "navigate", path: "/my/notifications-settings" },
+                    })
+                : undefined
+            }
             iconBg="#fff3e8"
             icon={<span className="text-base">🔔</span>}
             title="알림 설정"
             subtitle="마감 알림, 추천 알림 관리"
           />
           <MyMenuItem
-            href="/my/font-size"
+            href={isGuest ? undefined : "/my/font-size"}
+            onClick={
+              isGuest
+                ? () =>
+                    void requireAuth(() => router.push("/my/font-size"), {
+                      reason: "generic",
+                      returnTo: "/my/font-size",
+                      intent: { type: "navigate", path: "/my/font-size" },
+                    })
+                : undefined
+            }
             iconBg="#eef0ff"
             icon={<span className="text-xl font-bold text-primary">T</span>}
             title="글자 크기 설정"
@@ -116,26 +197,36 @@ export default function MyPage() {
           />
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <MyMenuItem
-            onClick={() => setLogoutOpen(true)}
-            iconBg="#ffecef"
-            icon={<span className="text-base">🚪</span>}
-            title="로그아웃"
-            titleClassName="text-[#e8434f]"
-          />
-        </section>
+        {!isGuest && (
+          <>
+            <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+              <MyMenuItem
+                onClick={() => setLogoutOpen(true)}
+                iconBg="#ffecef"
+                icon={<span className="text-base">🚪</span>}
+                title="로그아웃"
+                titleClassName="text-[#e8434f]"
+              />
+            </section>
 
-        <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4">
-          <p className="text-[15px] text-[#9096a6]">버전 1.0.0</p>
-          <button
-            type="button"
-            onClick={() => setWithdrawOpen(true)}
-            className="text-[15px] font-bold text-[#e8434f]"
-          >
-            회원 탈퇴
-          </button>
-        </div>
+            <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4">
+              <p className="text-[15px] text-[#9096a6]">버전 1.0.0</p>
+              <button
+                type="button"
+                onClick={() => setWithdrawOpen(true)}
+                className="text-[15px] font-bold text-[#e8434f]"
+              >
+                회원 탈퇴
+              </button>
+            </div>
+          </>
+        )}
+
+        {isGuest && (
+          <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4">
+            <p className="text-[15px] text-[#9096a6]">버전 1.0.0</p>
+          </div>
+        )}
       </div>
 
       <ConfirmModal

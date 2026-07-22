@@ -26,34 +26,41 @@ export function useActivityActions() {
 
   const toggleBookmark = useCallback(
     async (activityId: string) => {
-      await requireAuth(async () => {
-        setLoading(true);
-        try {
-          const res = await apiFetch<{ bookmarked: boolean }>(`/activities/${activityId}/bookmark`, {
-            method: "POST",
-          });
-          await queryClient.invalidateQueries({ queryKey: ["activity", activityId] });
-          await queryClient.invalidateQueries({ queryKey: ["activities"] });
-          await queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      await requireAuth(
+        async () => {
+          setLoading(true);
+          try {
+            const res = await apiFetch<{ bookmarked: boolean }>(
+              `/activities/${activityId}/bookmark`,
+              { method: "POST" }
+            );
+            await queryClient.invalidateQueries({ queryKey: ["activity", activityId] });
+            await queryClient.invalidateQueries({ queryKey: ["activities"] });
+            await queryClient.invalidateQueries({ queryKey: ["calendar"] });
 
-          const me = queryClient.getQueryData<MeResponse>(["me"]);
-          if (res.bookmarked && !me?.preferences?.dismiss_like_popup) {
-            setLikeDialogOpen(true);
-          } else if (res.bookmarked) {
-            showToast("찜 목록에 추가했어요");
-          } else {
-            showToast("찜을 해제했어요");
+            const me = queryClient.getQueryData<MeResponse>(["me"]);
+            if (res.bookmarked && !me?.preferences?.dismiss_like_popup) {
+              setLikeDialogOpen(true);
+            } else if (res.bookmarked) {
+              showToast("찜 목록에 추가했어요");
+            } else {
+              showToast("찜을 해제했어요");
+            }
+          } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+              promptLogin({
+                reason: "bookmark",
+                intent: { type: "bookmark", activityId },
+              });
+            } else {
+              showToast("관심 활동을 저장하지 못했어요. 다시 시도해주세요.");
+            }
+          } finally {
+            setLoading(false);
           }
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 401) {
-            promptLogin();
-          } else {
-            showToast("관심 활동을 저장하지 못했어요. 다시 시도해주세요.");
-          }
-        } finally {
-          setLoading(false);
-        }
-      });
+        },
+        { reason: "bookmark", intent: { type: "bookmark", activityId } }
+      );
     },
     [requireAuth, promptLogin, queryClient, showToast]
   );

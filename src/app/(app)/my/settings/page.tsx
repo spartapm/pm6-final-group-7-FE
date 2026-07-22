@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { apiFetch } from "@/lib/api-client";
 import type { MeResponse } from "@/lib/types";
 import { SEOUL_DISTRICTS } from "@/lib/onboarding";
+import { getDistrictsForCity } from "@/lib/regions";
 
 export default function MySettingsPage() {
   const router = useRouter();
@@ -19,6 +20,9 @@ export default function MySettingsPage() {
     queryKey: ["me"],
     queryFn: () => apiFetch<MeResponse>("/me"),
   });
+
+  const districts = getDistrictsForCity(me?.onboarding?.region_city || "서울특별시");
+  const districtOptions = districts.length > 0 ? districts : SEOUL_DISTRICTS;
 
   useEffect(() => {
     if (me) {
@@ -54,7 +58,7 @@ export default function MySettingsPage() {
       <div className="px-5 py-6">
         <p className="font-semibold">지역</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {SEOUL_DISTRICTS.map((d) => (
+          {districtOptions.map((d) => (
             <button
               key={d}
               type="button"

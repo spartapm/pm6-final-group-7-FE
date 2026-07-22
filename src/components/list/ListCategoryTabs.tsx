@@ -22,7 +22,7 @@ export function ListCategoryTabs({ tabs, activeId, onChange }: ListCategoryTabsP
             type="button"
             onClick={() => onChange(tab.id)}
             className={`relative flex-1 py-3.5 text-[17px] font-bold transition ${
-              active ? "text-primary" : "text-[#9ca3af]"
+              active ? "text-[#141414]" : "text-[#9a9aa5]"
             }`}
           >
             {tab.label}

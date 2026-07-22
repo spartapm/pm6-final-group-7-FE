@@ -1,18 +1,21 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LikeCompleteDialog } from "@/components/activity/LikeCompleteDialog";
+import { BookmarkActionButton } from "@/components/activity/BookmarkActionButton";
 import { JobDetailView } from "@/components/activity/JobDetailView";
 import { LearningDetailView } from "@/components/activity/LearningDetailView";
 import { SupportDetailView } from "@/components/activity/SupportDetailView";
 import { apiFetch } from "@/lib/api-client";
 import { setApplicationOptimistic } from "@/lib/optimistic-application";
-import { openApplyUrl } from "@/lib/apply-url";
+import { setGuestPendingApplyId } from "@/lib/guest-pending-apply";
+import { getApplySiteName, openApplyUrl, resolveApplyUrl } from "@/lib/apply-url";
+import { markViewed } from "@/lib/viewed";
 import { CATEGORY_LABELS } from "@/lib/onboarding";
 import type { Activity, MeResponse } from "@/lib/types";
 import { useAuthAction } from "@/providers/AuthActionProvider";
@@ -66,6 +69,7 @@ export default function ActivityDetailPage({
   const { requireAuth } = useAuthAction();
   const [likeDialogOpen, setLikeDialogOpen] = useState(false);
   const [cancelApplyOpen, setCancelApplyOpen] = useState(false);
+  const [applyConfirmOpen, setApplyConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { data: activity, isLoading } = useQuery({
@@ -76,62 +80,123 @@ export default function ActivityDetailPage({
   const { data: me } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiFetch<MeResponse>("/me"),
+    retry: false,
   });
 
+  // 확인함 표시 — 상세 진입 시 기록
+  useEffect(() => {
+    if (activity?.id) markViewed(activity.id);
+  }, [activity?.id]);
+
   async function handleBookmark() {
-    await requireAuth(async () => {
-      setLoading(true);
-      try {
-        const res = await apiFetch<{ bookmarked: boolean }>(`/activities/${id}/bookmark`, {
-          method: "POST",
-        });
-        await queryClient.invalidateQueries({ queryKey: ["activity", id] });
-        await queryClient.invalidateQueries({ queryKey: ["calendar"] });
-        if (res.bookmarked && !me?.preferences?.dismiss_like_popup) {
-          setLikeDialogOpen(true);
-        } else if (res.bookmarked) {
-          showToast("찜 목록에 추가했어요");
-        } else {
-          showToast("찜을 해제했어요");
+    await requireAuth(
+      async () => {
+        setLoading(true);
+        try {
+          const res = await apiFetch<{ bookmarked: boolean }>(`/activities/${id}/bookmark`, {
+            method: "POST",
+          });
+          await queryClient.invalidateQueries({ queryKey: ["activity", id] });
+          await queryClient.invalidateQueries({ queryKey: ["calendar"] });
+          if (res.bookmarked && !me?.preferences?.dismiss_like_popup) {
+            setLikeDialogOpen(true);
+          } else if (res.bookmarked) {
+            showToast("찜 목록에 추가했어요");
+          } else {
+            showToast("찜을 해제했어요");
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
+      },
+      {
+        reason: "bookmark",
+        returnTo: `/activities/${id}`,
+        intent: { type: "bookmark", activityId: id },
       }
-    });
+    );
+  }
+
+  async function doOpenApply() {
+    // 게스트도 외부 신청 URL은 열 수 있음 — 클릭 로그·pending은 로그인 시에만
+    let loggedIn = false;
+    try {
+      await apiFetch(`/activities/${id}/apply-click`, { method: "POST" });
+      loggedIn = true;
+    } catch {
+      // 비로그인 401 무시
+    }
+    const result = await openApplyUrl(activity!);
+    if (!result.opened) {
+      showToast("신청 링크가 없습니다. 담당 기관에 문의해 주세요.");
+      return;
+    }
+    if (result.copiedTitle) {
+      showToast("공고 제목이 복사되었습니다. 검색창에 붙여넣어 검색해보세요!");
+    }
+    if (loggedIn) {
+      // 서버 pending을 me 캐시에 반영 — 탭 복귀 시 ‘신청을 완료하셨나요?’ 노출
+      queryClient.setQueryData<MeResponse>(["me"], (old) =>
+        old ? { ...old, pending_apply_activity_id: id } : old
+      );
+    } else {
+      // 비회원: 신청완료 저장 유도(확인 팝업 → 로그인)
+      setGuestPendingApplyId(id);
+    }
   }
 
   async function handleApply() {
-    await requireAuth(async () => {
-      // 이미 신청완료 상태면 재클릭 시 취소 확인 팝업 (AP-02)
-      if (activity?.applied) {
-        setCancelApplyOpen(true);
-        return;
-      }
+    // 이미 신청완료 상태면 재클릭 시 취소 — 로그인 필요
+    if (activity?.applied) {
+      await requireAuth(
+        async () => {
+          setCancelApplyOpen(true);
+        },
+        {
+          reason: "applySave",
+          returnTo: `/activities/${id}`,
+          intent: { type: "applyCancel", activityId: id },
+        }
+      );
+      return;
+    }
 
-      // 오프라인이면 신청 대기 저장 없이 안내만 (AP-04)
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        showToast("인터넷 연결을 확인해주세요.");
-        return;
-      }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      showToast("인터넷 연결을 확인해주세요.");
+      return;
+    }
 
-      await apiFetch(`/activities/${id}/apply-click`, { method: "POST" });
-      const result = await openApplyUrl(activity!);
-      if (!result.opened) {
-        showToast("신청 링크가 없습니다. 담당 기관에 문의해 주세요.");
-      } else if (result.copiedTitle) {
-        showToast("공고 제목을 복사했어요. 포털에서 붙여넣어 검색하세요.");
-      }
-    });
+    // 외부 홈페이지로 이동 전 확인 팝업 (게스트도 가능)
+    const url = activity ? resolveApplyUrl(activity) : null;
+    if (url && /^https?:\/\//i.test(url)) {
+      setApplyConfirmOpen(true);
+      return;
+    }
+    await doOpenApply();
+  }
+
+  async function confirmOpenApply() {
+    setApplyConfirmOpen(false);
+    await doOpenApply();
   }
 
   async function confirmCancelApply() {
     setCancelApplyOpen(false);
-    try {
-      await setApplicationOptimistic(queryClient, id, false);
-      showToast("신청완료를 취소했어요.");
-    } catch {
-      showToast("취소 처리에 실패했어요. 다시 시도해주세요.");
-    }
+    await requireAuth(
+      async () => {
+        try {
+          await setApplicationOptimistic(queryClient, id, false);
+          showToast("신청완료를 취소했어요.");
+        } catch {
+          showToast("취소 처리에 실패했어요. 다시 시도해주세요.");
+        }
+      },
+      {
+        reason: "applySave",
+        returnTo: `/activities/${id}`,
+        intent: { type: "applyCancel", activityId: id },
+      }
+    );
   }
 
   async function handleShare() {
@@ -154,15 +219,26 @@ export default function ActivityDetailPage({
   }
 
   const cancelApplyModal = (
-    <ConfirmModal
-      open={cancelApplyOpen}
-      title="신청완료를 취소하시겠어요?"
-      description="취소하면 내 캘린더의 신청완료 표시가 사라져요."
-      confirmLabel="예"
-      cancelLabel="아니요"
-      onConfirm={confirmCancelApply}
-      onCancel={() => setCancelApplyOpen(false)}
-    />
+    <>
+      <ConfirmModal
+        open={cancelApplyOpen}
+        title="신청완료를 취소하시겠어요?"
+        description="취소하면 내 캘린더의 신청완료 표시가 사라져요."
+        confirmLabel="예"
+        cancelLabel="아니요"
+        onConfirm={confirmCancelApply}
+        onCancel={() => setCancelApplyOpen(false)}
+      />
+      <ConfirmModal
+        open={applyConfirmOpen}
+        title={activity ? getApplySiteName(activity) : ""}
+        description="홈페이지로 이동합니다."
+        confirmLabel="이동하기"
+        cancelLabel="취소"
+        onConfirm={confirmOpenApply}
+        onCancel={() => setApplyConfirmOpen(false)}
+      />
+    </>
   );
 
   if (isLoading) {
@@ -320,17 +396,11 @@ export default function ActivityDetailPage({
 
       {/* 하단 액션 바 */}
       <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-3 border-t border-[#eceef2] bg-white p-4">
-        <button
-          type="button"
+        <BookmarkActionButton
+          bookmarked={Boolean(activity.bookmarked)}
           disabled={loading}
           onClick={handleBookmark}
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 text-2xl ${
-            activity.bookmarked ? "border-primary text-red-500" : "border-gray-200"
-          }`}
-          aria-label="찜하기"
-        >
-          {activity.bookmarked ? "♥" : "♡"}
-        </button>
+        />
         <button
           type="button"
           disabled={isExpired}

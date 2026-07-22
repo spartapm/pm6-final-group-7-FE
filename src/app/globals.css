@@ -14,9 +14,14 @@
   --color-text-subtle: #e6e9fa;
   --color-text-on-primary: #ffffff;
   --color-deadline-urgent: #dc2626;
-  --color-deadline-normal: #4b5563;
-  --color-category-education: #be4574;
+  --color-deadline-normal: #6b6b76;
+  --color-category-job: #6d82e3;
+  --color-category-support: #5fae8a;
+  --color-category-education: #d87a9a;
+  --color-category-hobby: #e59b55;
+  --color-tab-active: #4b4ad1;
   --color-banner-cta: #8b5cf6;
+  --color-viewed-bg: #fafafa;
   --radius-card: 16px;
   --radius-button: 16px;
   --font-sans: "Pretendard", ui-sans-serif, system-ui, sans-serif;
@@ -129,11 +134,12 @@ html[data-font-size="default"] { font-size: 16px; }
 html[data-font-size="large"] { font-size: 18px; }
 html[data-font-size="xlarge"] { font-size: 20px; }
 
-/* 바텀 탭: 비활성 #b7b6c2, 활성 #7583e2 (2번 아이콘 기준) */
+/* 바텀 탭: 비활성 #b0b0b8, 활성 #4b4ad1 (최종와이어프레임) */
 .tab-nav-icon-inactive {
-  filter: brightness(0) saturate(100%) invert(78%) sepia(6%) saturate(350%) hue-rotate(202deg);
+  /* 소스 SVG가 이미 #B0B0B8 — 필터 없음 */
+  opacity: 1;
 }
 
 .tab-nav-icon-active {
-  filter: brightness(0) saturate(100%) invert(54%) sepia(28%) saturate(1120%) hue-rotate(210deg) brightness(96%);
+  filter: brightness(0) saturate(100%) invert(27%) sepia(74%) saturate(2200%) hue-rotate(230deg) brightness(90%);
 }

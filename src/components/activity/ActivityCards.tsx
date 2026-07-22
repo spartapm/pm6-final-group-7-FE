@@ -2,8 +2,11 @@ import type { Activity, UserOnboarding } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/onboarding";
 import { DeadlineBadge, formatDeadline } from "@/components/ui/DeadlineBadge";
 import { differenceInCalendarDays, parseISO } from "date-fns";
+import Image from "next/image";
 import Link from "next/link";
 import { AiSummaryBlock } from "@/components/activity/AiSummarySection";
+import { formatScheduleDisplay } from "@/lib/scheduleDisplay";
+import { ASSETS } from "@/lib/assets";
 
 interface Props {
   activity: Activity;
@@ -14,6 +17,54 @@ interface Props {
   bookmarked?: boolean;
   bookmarkLoading?: boolean;
   onBookmark?: () => void;
+  /** 상세를 이미 확인한 활동 표시 */
+  viewed?: boolean;
+}
+
+/** 지역 표기: region_city 또는 attributes.region_city */
+function regionLabel(activity: Activity): string | null {
+  if (!activity.region_district) {
+    return activity.category === "support" ? "전국" : null;
+  }
+  const fromAttr =
+    typeof activity.attributes?.region_city === "string"
+      ? activity.attributes.region_city
+      : null;
+  const city = (activity.region_city?.trim() || fromAttr?.trim() || "").replace(
+    /(특별시|광역시|특별자치시|도)$/,
+    ""
+  );
+  const cityShort = city || "서울";
+  return `${cityShort} ${activity.region_district}`;
+}
+
+function ViewedBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#eceef2] px-1.5 py-0.5 text-[10px] font-medium text-[#9a9aa5]">
+      <Image
+        src={ASSETS.iconViewedCheck}
+        alt=""
+        width={10}
+        height={10}
+        unoptimized
+        className="opacity-80"
+      />
+      확인함
+    </span>
+  );
+}
+
+/** M-14: 취미 카드도 교육처럼 비용 노출 — cost/fee/is_free 순으로 탐색 */
+function getCostLabel(activity: Activity): string | null {
+  const a = activity.attributes ?? {};
+  const cost = typeof a.cost === "string" && a.cost.trim() ? a.cost.trim() : null;
+  if (cost) return cost;
+  const isFree = typeof a.is_free === "string" ? a.is_free.trim() : "";
+  if (isFree === "무료") return "무료";
+  const fee = typeof a.fee === "string" && a.fee.trim() ? a.fee.trim() : null;
+  if (fee) return fee;
+  if (isFree === "유료") return "유료";
+  return null;
 }
 
 // UI-04: 글자수 규칙(제목 28자·추천이유 25자, 초과 시 말줄임)
@@ -26,9 +77,9 @@ function ReasonBox({ reasons }: { reasons: string[] }) {
   if (reasons.length === 0) return null;
   return (
     <div className="mt-3 rounded-xl bg-[#f3f0fc] px-4 py-3">
-      <p className="text-base font-bold text-primary-deep">추천이유</p>
+      <p className="text-[16px] font-bold text-[#4b46d6]">추천이유</p>
       {reasons.map((r) => (
-        <p key={r} className="mt-1 text-base font-semibold text-[#1f2937]">
+        <p key={r} className="mt-1 text-[16px] font-normal text-[#1a1a1a]">
           {truncateChars(r, 25)}
         </p>
       ))}
@@ -45,25 +96,29 @@ export function RecommendationCard({
   bookmarked,
   bookmarkLoading,
   onBookmark,
+  viewed,
 }: Props) {
   const isExpired = expired ?? activity.status === "expired";
   const isBookmarked = bookmarked ?? activity.bookmarked;
 
   return (
     <div
-      className={`mb-4 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${
-        isExpired ? "opacity-70" : ""
-      }`}
+      className={`mb-4 overflow-hidden rounded-2xl border shadow-sm ${
+        viewed ? "border-[#ECECEE] bg-[#FAFAFA]" : "border-gray-100 bg-white"
+      } ${isExpired ? "opacity-70" : ""}`}
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3
-            className={`line-clamp-2 flex-1 text-[18px] font-bold leading-snug ${
-              isExpired ? "text-[#b4b4be]" : "text-text-primary"
-            }`}
-          >
-            {truncateChars(activity.title, 28)}
-          </h3>
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <h3
+              className={`line-clamp-2 min-w-0 text-[18px] font-bold leading-snug ${
+                isExpired ? "text-[#b4b4be]" : "text-text-primary"
+              }`}
+            >
+              {truncateChars(activity.title, 28)}
+            </h3>
+            {viewed && <ViewedBadge />}
+          </div>
           <div className="flex shrink-0 items-start gap-2">
             {onBookmark && !isExpired && (
               <button
@@ -84,8 +139,8 @@ export function RecommendationCard({
         </div>
         <p className={`mt-1 text-[15px] ${isExpired ? "text-[#c7c7d1]" : "text-[#9096a6]"}`}>
           {activity.org_name}
-          {activity.region_district
-            ? ` · 서울 ${activity.region_district}`
+          {regionLabel(activity)
+            ? ` · ${regionLabel(activity)}`
             : activity.category === "support"
               ? " · 전국"
               : ""}
@@ -105,7 +160,7 @@ export function RecommendationCard({
       ) : (
         <Link
           href={`/activities/${activity.id}`}
-          className="block bg-primary py-3.5 text-center text-[17px] font-extrabold text-white"
+          className="block bg-primary py-3.5 text-center text-[15px] font-bold text-white"
         >
           상세보기
         </Link>
@@ -130,7 +185,7 @@ export function ActivityListCard({ activity }: { activity: Activity }) {
           </h3>
           <p className="mt-1 text-sm text-text-muted">
             {activity.org_name}
-            {activity.region_district ? ` · 서울 ${activity.region_district}` : ""}
+            {regionLabel(activity) ? ` · ${regionLabel(activity)}` : ""}
           </p>
         </div>
         <DeadlineBadge applyEnd={activity.apply_end} />
@@ -168,33 +223,38 @@ export function LearningListCard({
   bookmarked,
   bookmarkLoading,
   onBookmark,
+  viewed,
 }: {
   activity: Activity;
   bookmarked?: boolean;
   bookmarkLoading?: boolean;
   onBookmark?: () => void;
+  viewed?: boolean;
 }) {
   const isExpired = activity.status === "expired";
   const isBookmarked = bookmarked ?? activity.bookmarked;
-  const cost = activity.attributes?.cost;
-  const costLabel = typeof cost === "string" ? cost : null;
+  const costLabel = getCostLabel(activity);
   const isFree = costLabel?.includes("무료");
+  const scheduleLabel = formatScheduleDisplay(activity.event_schedule);
 
   return (
     <div
-      className={`mb-4 overflow-hidden rounded-2xl border border-[#eceef2] bg-white shadow-sm ${
-        isExpired ? "opacity-75" : ""
-      }`}
+      className={`mb-4 overflow-hidden rounded-2xl border shadow-sm ${
+        viewed ? "border-[#ECECEE] bg-[#FAFAFA]" : "border-[#eceef2] bg-white"
+      } ${isExpired ? "opacity-75" : ""}`}
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
-          <h3
-            className={`line-clamp-2 flex-1 text-[18px] font-bold leading-snug ${
-              isExpired ? "text-[#b7bac3]" : "text-[#111318]"
-            }`}
-          >
-            {truncateChars(activity.title, 28)}
-          </h3>
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <h3
+              className={`line-clamp-2 min-w-0 text-[18px] font-bold leading-snug ${
+                isExpired ? "text-[#b7bac3]" : "text-[#111318]"
+              }`}
+            >
+              {truncateChars(activity.title, 28)}
+            </h3>
+            {viewed && <ViewedBadge />}
+          </div>
           <div className="flex shrink-0 items-start gap-2">
             {onBookmark && !isExpired && (
               <button
@@ -216,14 +276,14 @@ export function LearningListCard({
 
         <p className={`mt-2 text-[16px] ${isExpired ? "text-[#c7c7d1]" : "text-[#8a8f99]"}`}>
           {activity.org_name}
-          {activity.region_district ? ` · 서울 ${activity.region_district}` : ""}
+          {regionLabel(activity) ? ` · ${regionLabel(activity)}` : ""}
         </p>
 
-        {(activity.event_schedule || costLabel) && (
+        {(scheduleLabel || costLabel) && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[15px]">
-            {activity.event_schedule && (
+            {scheduleLabel && (
               <p className={isExpired ? "text-[#c7c7d1]" : "text-[#8a8f99]"}>
-                🕐 {activity.event_schedule}
+                🕐 {scheduleLabel}
               </p>
             )}
             {costLabel && (

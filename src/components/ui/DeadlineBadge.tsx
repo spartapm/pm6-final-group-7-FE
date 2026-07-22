@@ -1,12 +1,13 @@
 import { differenceInCalendarDays, isToday, parseISO } from "date-fns";
 
 export function formatDeadline(applyEnd: string | null): string {
-  if (!applyEnd) return "상시 접수";
+  if (!applyEnd) return "상시접수";
   const end = parseISO(applyEnd);
   const days = differenceInCalendarDays(end, new Date());
   if (days < 0) return "마감";
-  if (isToday(end)) return "오늘 마감";
-  return `마감 ${days}일 전`;
+  if (isToday(end) || days === 0) return "오늘 마감";
+  if (days <= 3) return `마감 ${days}일 전`;
+  return "모집중";
 }
 
 export function DeadlineBadge({

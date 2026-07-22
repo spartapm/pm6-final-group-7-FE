@@ -26,7 +26,8 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-white">
       <AppHeader title="알림" backHref="/home" showNotification={false} />
-      <div className="px-5 pb-8">
+      <div className="px-5 pb-8 pt-1">
+        <p className="mb-3 text-[15px] font-semibold text-[#9a9aa5]">알림 메시지함</p>
         {data && data.unread > 0 && (
           <div className="mb-4 mt-2 inline-flex rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
             읽지 않음 {data.unread}
