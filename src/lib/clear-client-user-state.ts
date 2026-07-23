@@ -10,6 +10,7 @@ const CLIENT_STATE_KEYS = [
   "oyukirang-dev-token",
   "ovViewed",
   "ovLikeTipDismissed",
+  "oyukirang-like-tip-dismissed",
   "oyukirang-pending-auth-action",
   "oyukirang-guest-pending-apply",
   "onboarding_flow",
