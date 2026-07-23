@@ -18,6 +18,7 @@ import { getApplySiteName, openApplyUrl, resolveApplyUrl } from "@/lib/apply-url
 import { markViewed } from "@/lib/viewed";
 import { CATEGORY_LABELS } from "@/lib/onboarding";
 import type { Activity, MeResponse } from "@/lib/types";
+import { formatActivityRegion } from "@/lib/region-display";
 import { useAuthAction } from "@/providers/AuthActionProvider";
 import { shareActivity } from "@/lib/share";
 import { useToast } from "@/components/ui/Toast";
@@ -328,8 +329,8 @@ export default function ActivityDetailPage({
           ‹
         </button>
         <h1 className="flex-1 truncate text-lg font-bold text-[#111318]">{activity.title}</h1>
-        <button type="button" aria-label="공유" onClick={handleShare}>
-          <Image src={ASSETS.iconShare} alt="" width={22} height={22} />
+        <button type="button" aria-label="공유" onClick={handleShare} className="p-2">
+          <Image src={ASSETS.iconShare} alt="" width={20} height={20} />
         </button>
       </header>
 
@@ -363,7 +364,10 @@ export default function ActivityDetailPage({
             <>
               <DetailRow label="기관" value={activity.org_name} />
               {activity.region_district && (
-                <DetailRow label="위치" value={`📍 서울 ${activity.region_district}`} />
+                <DetailRow
+                  label="위치"
+                  value={`📍 ${formatActivityRegion(activity) ?? activity.region_district}`}
+                />
               )}
             </>
           )}

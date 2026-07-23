@@ -1,13 +1,8 @@
 import { CAREER_JOBS } from "@/lib/onboarding";
-import { getAllSupportedDistricts } from "@/lib/regions";
+import { getDistrictsForCity } from "@/lib/regions";
 import { normalizeWorkDays } from "@/lib/workDaysNormalize";
 import type { Activity } from "@/lib/types";
 import { differenceInCalendarDays, parseISO } from "date-fns";
-
-const REGION_DISTRICT_OPTIONS = [
-  { value: "", label: "전체" },
-  ...getAllSupportedDistricts().map((d) => ({ value: d, label: d })),
-];
 
 export type FilterLayout = "list" | "chips";
 
@@ -23,7 +18,17 @@ export interface FilterDefinition {
   options: FilterOption[];
 }
 
-export const JOB_TAB_FILTERS: FilterDefinition[] = [
+/** 거주 시·도의 구·군만 (전국·전체 옵션 없음) */
+export function regionDistrictOptionsForCity(cityCode: string): FilterOption[] {
+  return getDistrictsForCity(cityCode || "서울특별시").map((d) => ({ value: d, label: d }));
+}
+
+function withRegionOptions(defs: FilterDefinition[], cityCode: string): FilterDefinition[] {
+  const options = regionDistrictOptionsForCity(cityCode);
+  return defs.map((d) => (d.id === "region" ? { ...d, options } : d));
+}
+
+const JOB_TAB_FILTERS_BASE: FilterDefinition[] = [
   {
     id: "industry",
     label: "업종",
@@ -37,7 +42,7 @@ export const JOB_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: REGION_DISTRICT_OPTIONS,
+    options: [],
   },
   {
     id: "workType",
@@ -97,12 +102,11 @@ export const JOB_TAB_FILTERS: FilterDefinition[] = [
   },
 ];
 
-export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
+const SUPPORT_TAB_FILTERS_BASE: FilterDefinition[] = [
   {
     id: "field",
     label: "분야",
     layout: "list",
-    // FL-03 확정 구성 (분류기 SupportField와 일치)
     options: [
       { value: "", label: "전체" },
       { value: "경제", label: "경제" },
@@ -119,7 +123,7 @@ export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: REGION_DISTRICT_OPTIONS,
+    options: [],
   },
   {
     id: "applyStatus",
@@ -133,6 +137,19 @@ export const SUPPORT_TAB_FILTERS: FilterDefinition[] = [
     ],
   },
 ];
+
+/** @deprecated 정적 — getJobTabFilters(city) 사용 */
+export const JOB_TAB_FILTERS = withRegionOptions(JOB_TAB_FILTERS_BASE, "서울특별시");
+/** @deprecated 정적 — getSupportTabFilters(city) 사용 */
+export const SUPPORT_TAB_FILTERS = withRegionOptions(SUPPORT_TAB_FILTERS_BASE, "서울특별시");
+
+export function getJobTabFilters(cityCode: string): FilterDefinition[] {
+  return withRegionOptions(JOB_TAB_FILTERS_BASE, cityCode);
+}
+
+export function getSupportTabFilters(cityCode: string): FilterDefinition[] {
+  return withRegionOptions(SUPPORT_TAB_FILTERS_BASE, cityCode);
+}
 
 /** 필터 값: 그룹별 다중 선택 배열. list = 체크(다중), chips = 라디오(단일, 0~1개) */
 export type JobsFilterValues = Record<string, string[]>;

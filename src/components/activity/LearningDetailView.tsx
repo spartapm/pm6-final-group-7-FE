@@ -16,6 +16,7 @@ import {
 import { AiSummarySection } from "@/components/activity/AiSummarySection";
 import { BookmarkActionButton } from "@/components/activity/BookmarkActionButton";
 import { getApplyButtonLabel } from "@/lib/apply-url";
+import { formatActivityRegion } from "@/lib/region-display";
 import type { Activity } from "@/lib/types";
 
 function ProgramSectionCard({
@@ -32,7 +33,7 @@ function ProgramSectionCard({
   return (
     <div className="overflow-hidden rounded-[14px] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
       <div className="border-b border-[#f3f4f6] px-4 py-3" style={{ backgroundColor: theme.sectionBg }}>
-        <p className="text-[14px] font-black" style={{ color: theme.sectionText }}>
+        <p className="text-[18px] font-black" style={{ color: theme.sectionText }}>
           {icon} {title}
         </p>
       </div>
@@ -43,7 +44,7 @@ function ProgramSectionCard({
 
 function HashTagPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-3 py-1.5 text-[12px] font-semibold text-[#4a5565]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-3 py-1.5 text-[18px] font-semibold text-[#4a5565]">
       <span className="text-[#9aa0a8]">#</span>
       {label}
     </span>
@@ -74,6 +75,10 @@ export function LearningDetailView({
   const dday = getDday(activity.apply_end);
   const urgent = isUrgentDeadline(activity.apply_end);
   const applyPeriod = getApplyPeriod(activity);
+  const regionText = formatActivityRegion(activity);
+  const description = getProgramDescription(activity);
+  const qualifications = getProgramQualifications(activity);
+  const hasApplyPeriod = Boolean(activity.apply_start || activity.apply_end);
 
   return (
     <div className="bg-[#f5f4ff] pb-[var(--activity-action-bar-height)]">
@@ -98,7 +103,6 @@ export function LearningDetailView({
           <h1 className="min-w-0 flex-1 truncate text-[20px] font-bold text-[#1e2939]">
             {activity.title}
           </h1>
-          {/* M-3: 회색 배경 없이 아이콘만 */}
           <button type="button" aria-label="공유" onClick={onShare} className="p-2">
             <Image src={ASSETS.iconShare} alt="" width={20} height={20} />
           </button>
@@ -127,27 +131,31 @@ export function LearningDetailView({
               {activity.title}
             </h2>
 
-            <div className="mt-3 flex items-center gap-1.5 text-[14px] font-semibold text-[#364153]">
-                            {activity.org_name}
-            </div>
-            {activity.region_district && (
-              <div className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[#4a5565]">
+            {activity.org_name && (
+              <div className="mt-3 flex items-center gap-1.5 text-[18px] font-semibold text-[#364153]">
+                {activity.org_name}
+              </div>
+            )}
+            {regionText && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[18px] text-[#4a5565]">
                 <Image src={ASSETS.iconLocationPin} alt="" width={14} height={14} />
-                서울 {activity.region_district}
+                {regionText}
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-3 border-t border-[#f3f4f6] pt-4">
-              {dday !== null && !isExpired && (
-                <span className="shrink-0 rounded-[14px] bg-[#ffe2e2] px-4 py-2 text-[16px] font-black text-[#e7000b]">
-                  D-{dday}
-                </span>
-              )}
-              <div>
-                <p className="text-[12px] text-[#99a1af]">신청 기간</p>
-                <p className="text-[14px] font-semibold text-[#364153]">{applyPeriod}</p>
+            {hasApplyPeriod && (
+              <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f3f4f6] pt-4">
+                <div>
+                  <p className="text-[18px] text-[#99a1af]">신청 기간</p>
+                  <p className="mt-1 text-[18px] font-semibold text-[#364153]">{applyPeriod}</p>
+                </div>
+                {dday !== null && !isExpired && (
+                  <span className="shrink-0 rounded-[14px] bg-[#ffe2e2] px-4 py-2 text-[16px] font-black text-[#e7000b]">
+                    D-{dday}
+                  </span>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -159,21 +167,21 @@ export function LearningDetailView({
                 className={`flex border-[#f3f4f6] ${index < programRows.length - 1 ? "border-b" : ""}`}
               >
                 <div className="flex w-28 shrink-0 items-center bg-[#f9fafb] px-4 py-3">
-                  <span className="text-[12px] font-bold text-[#4a5565]">{row.label}</span>
+                  <span className="text-[18px] font-bold text-[#4a5565]">{row.label}</span>
                 </div>
                 <div className="flex min-w-0 flex-1 items-center px-4 py-3">
                   {row.withPin ? (
-                    <span className="flex items-center gap-1 text-[14px] text-[#1e2939]">
-                                            {row.value}
+                    <span className="flex items-center gap-1 text-[18px] text-[#1e2939]">
+                      {row.value}
                     </span>
                   ) : row.withClock ? (
-                    <span className="flex items-center gap-1 text-[14px] text-[#1e2939]">
+                    <span className="flex items-center gap-1 text-[18px] text-[#1e2939]">
                       <Image src={ASSETS.iconCalendarSmall} alt="" width={12} height={12} />
                       {row.value}
                     </span>
                   ) : (
                     <span
-                      className={`text-[14px] ${
+                      className={`text-[18px] ${
                         row.red
                           ? "font-bold text-[#e7000b]"
                           : row.green
@@ -192,19 +200,23 @@ export function LearningDetailView({
           </ProgramSectionCard>
         )}
 
-        <AiSummarySection activity={activity} variant="learning" bodyClass="text-[14px]" />
+        <AiSummarySection activity={activity} variant="learning" />
 
-        <ProgramSectionCard theme={theme} icon="✏️" title="프로그램 소개">
-          <p className="p-5 text-[14px] leading-relaxed text-[#364153]">
-            {getProgramDescription(activity)}
-          </p>
-        </ProgramSectionCard>
+        {description && (
+          <ProgramSectionCard theme={theme} icon="✏️" title="프로그램 소개">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {description}
+            </p>
+          </ProgramSectionCard>
+        )}
 
-        <ProgramSectionCard theme={theme} icon="📝" title="지원 자격 / 신청 조건">
-          <p className="p-5 text-[14px] leading-relaxed text-[#364153]">
-            {getProgramQualifications(activity)}
-          </p>
-        </ProgramSectionCard>
+        {qualifications && (
+          <ProgramSectionCard theme={theme} icon="📝" title="지원 자격 / 신청 조건">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {qualifications}
+            </p>
+          </ProgramSectionCard>
+        )}
 
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 rounded-[14px] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">

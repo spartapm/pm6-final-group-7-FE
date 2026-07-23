@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ASSETS } from "@/lib/assets";
 import { apiFetch } from "@/lib/api-client";
+import { formatUserRegionLabel } from "@/lib/region-display";
 import type { NotificationItem } from "@/lib/types";
 import { useAuthAction } from "@/providers/AuthActionProvider";
 
@@ -40,9 +41,7 @@ export function AppHeader({
   });
 
   const unread = notifications?.unread ?? 0;
-  const regionText = district
-    ? `${(cityLabel ?? "서울").replace(/(특별시|광역시|특별자치시|도)$/, "")} ${district}`
-    : null;
+  const regionText = formatUserRegionLabel(cityLabel, district);
 
   if (title) {
     return (

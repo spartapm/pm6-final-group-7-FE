@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { MyProfileCard } from "@/components/my/MyProfileCard";
 import { setOnboardingFlow } from "@/lib/onboarding";
@@ -19,11 +19,13 @@ import {
   normalizeGuestOnboarding,
 } from "@/lib/guest-onboarding";
 import { createClient } from "@/lib/supabase/client";
+import { clearClientUserState } from "@/lib/clear-client-user-state";
 import type { MeResponse } from "@/lib/types";
 import { useAuthAction } from "@/providers/AuthActionProvider";
 
 export default function MyPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const devMode = useDevAuthSession();
   const { show: showToast } = useToast();
   const { requireAuth } = useAuthAction();
@@ -86,6 +88,7 @@ export default function MyPage() {
 
   async function handleWithdraw() {
     await apiFetch("/me/withdraw", { method: "POST" });
+    clearClientUserState(queryClient);
     await endSession();
     router.push("/");
   }

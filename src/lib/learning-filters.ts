@@ -1,16 +1,10 @@
-import { getAllSupportedDistricts } from "@/lib/regions";
+import { regionDistrictOptionsForCity, type FilterDefinition } from "@/lib/jobs-filters";
 import type { Activity } from "@/lib/types";
 import { matchesApplyStatus } from "@/lib/jobs-filters";
-import type { FilterDefinition } from "@/lib/jobs-filters";
 import { isAdultOrientedActivity } from "@/lib/adultTargetFilter";
 
 /** 그룹별 다중 선택 배열 (list=체크 다중, chips=라디오 단일 0~1개) */
 export type LearningFilterValues = Record<string, string[]>;
-
-const REGION_OPTIONS = [
-  { value: "", label: "전체" },
-  ...getAllSupportedDistricts().map((d) => ({ value: d, label: d })),
-];
 
 const COST_CHIP_OPTIONS = [
   { value: "", label: "전체" },
@@ -25,8 +19,12 @@ const RECRUIT_CHIP_OPTIONS = [
   { value: "상시접수", label: "상시접수" },
 ];
 
-// FL-03: 분야 값은 ingestion 분류기(LifelongField) 출력과 일치시켜 실제 매칭 보장
-export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
+function withRegion(defs: FilterDefinition[], cityCode: string): FilterDefinition[] {
+  const options = regionDistrictOptionsForCity(cityCode);
+  return defs.map((d) => (d.id === "region" ? { ...d, options } : d));
+}
+
+const EDUCATION_TAB_FILTERS_BASE: FilterDefinition[] = [
   {
     id: "field",
     label: "분야",
@@ -46,7 +44,7 @@ export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: REGION_OPTIONS,
+    options: [],
   },
   {
     id: "classType",
@@ -72,7 +70,7 @@ export const EDUCATION_TAB_FILTERS: FilterDefinition[] = [
   },
 ];
 
-export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
+const HOBBY_TAB_FILTERS_BASE: FilterDefinition[] = [
   {
     id: "field",
     label: "분야",
@@ -92,7 +90,7 @@ export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
     id: "region",
     label: "지역",
     layout: "list",
-    options: REGION_OPTIONS,
+    options: [],
   },
   {
     id: "cost",
@@ -107,6 +105,17 @@ export const HOBBY_TAB_FILTERS: FilterDefinition[] = [
     options: RECRUIT_CHIP_OPTIONS,
   },
 ];
+
+export const EDUCATION_TAB_FILTERS = withRegion(EDUCATION_TAB_FILTERS_BASE, "서울특별시");
+export const HOBBY_TAB_FILTERS = withRegion(HOBBY_TAB_FILTERS_BASE, "서울특별시");
+
+export function getEducationTabFilters(cityCode: string): FilterDefinition[] {
+  return withRegion(EDUCATION_TAB_FILTERS_BASE, cityCode);
+}
+
+export function getHobbyTabFilters(cityCode: string): FilterDefinition[] {
+  return withRegion(HOBBY_TAB_FILTERS_BASE, cityCode);
+}
 
 function attr(activity: Activity, key: string): string {
   const v = activity.attributes?.[key];

@@ -35,9 +35,22 @@ export function getJobSummaryRows(activity: Activity): JobDetailRow[] {
     rows.push({ label: "근무일수·시간", value: attr(activity, "work_days") });
   }
   if (addressFull || activity.region_district) {
+    const fromAttr =
+      typeof activity.attributes?.region_city === "string"
+        ? activity.attributes.region_city
+        : null;
+    const cityShort = (activity.region_city?.trim() || fromAttr?.trim() || "").replace(
+      /(특별시|광역시|특별자치시|특별자치도|도)$/,
+      ""
+    );
+    const districtLabel = activity.region_district
+      ? cityShort
+        ? `${cityShort} ${activity.region_district}`
+        : activity.region_district
+      : "";
     rows.push({
       label: "근무위치",
-      value: addressFull || `서울 ${activity.region_district}`,
+      value: addressFull || districtLabel,
       withPin: true,
     });
   }

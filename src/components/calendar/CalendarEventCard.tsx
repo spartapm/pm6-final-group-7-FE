@@ -7,10 +7,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { DeadlineBadge } from "@/components/ui/DeadlineBadge";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ViewedBadge } from "@/components/activity/ActivityCards";
 import { ASSETS } from "@/lib/assets";
 import { apiFetch } from "@/lib/api-client";
 import { applyApplicationOptimistic, patchActivityApplied } from "@/lib/optimistic-application";
 import { CATEGORY_LABELS } from "@/lib/onboarding";
+import { isViewed } from "@/lib/viewed";
+import { formatActivityRegion } from "@/lib/region-display";
 import {
   CATEGORY_DOT_COLORS,
   CATEGORY_TAG_STYLES,
@@ -37,6 +40,7 @@ export function CalendarEventCard({ item, onUnbookmarked }: Props) {
   const expired = isActivityExpired(activity);
   const tagStyle = CATEGORY_TAG_STYLES[activity.category];
   const categoryColor = CATEGORY_DOT_COLORS[activity.category];
+  const viewed = isViewed(activity.id);
 
   async function doToggleBookmark() {
     setLoading(true);
@@ -112,9 +116,9 @@ export function CalendarEventCard({ item, onUnbookmarked }: Props) {
           activity.apply_end ? format(parseISO(activity.apply_end), "yyyy-MM-dd") : undefined
         }
         data-activity-id={activity.id}
-        className={`mb-3 overflow-hidden rounded-2xl border border-[#eceef2] bg-white shadow-sm ${
-          expired ? "opacity-70" : ""
-        }`}
+        className={`mb-3 overflow-hidden rounded-2xl border shadow-sm ${
+          viewed ? "border-[#ECECEE] bg-[#FAFAFA]" : "border-[#eceef2] bg-white"
+        } ${expired ? "opacity-70" : ""}`}
         style={{ borderLeft: `4px solid ${categoryColor}` }}
       >
         <div className="p-4">
@@ -127,15 +131,18 @@ export function CalendarEventCard({ item, onUnbookmarked }: Props) {
             <DeadlineBadge applyEnd={activity.apply_end} />
           </div>
 
-          <p className={`mt-2 text-[17px] font-bold ${expired ? "text-[#b4b4be]" : "text-[#1c1c27]"}`}>
-            {activity.title}
-          </p>
+          <div className="mt-2 flex items-start gap-2">
+            <p className={`flex-1 text-[17px] font-bold ${expired ? "text-[#b4b4be]" : "text-[#1c1c27]"}`}>
+              {activity.title}
+            </p>
+            {viewed && <ViewedBadge />}
+          </div>
           <p className="mt-1 text-sm text-[#9096a6]">{activity.org_name}</p>
 
-          {activity.region_district && (
+          {formatActivityRegion(activity) && (
             <p className="mt-2 flex items-center gap-1 text-sm text-[#6b7280]">
               <Image src={ASSETS.iconLocationPin} alt="" width={12} height={14} />
-              서울 {activity.region_district}
+              {formatActivityRegion(activity)}
             </p>
           )}
 
@@ -164,10 +171,11 @@ export function CalendarEventCard({ item, onUnbookmarked }: Props) {
               disabled={loading || expired}
               onClick={handleApplyToggle}
               className={`flex-1 rounded-xl border py-2 text-sm font-bold ${
-                applied
-                  ? "border-primary bg-primary text-white"
-                  : "border-[#e6e8ef] bg-white text-[#6b7280]"
+                applied ? "text-white" : "border-[#e6e8ef] bg-white text-[#6b7280]"
               }`}
+              style={
+                applied ? { backgroundColor: categoryColor, borderColor: categoryColor } : undefined
+              }
             >
               {applied ? "신청완료" : "신청전"}
             </button>

@@ -46,6 +46,8 @@ export default function MySettingsPage() {
       });
       await apiFetch("/recommendations/refresh", { method: "POST", body: JSON.stringify({}) });
       await queryClient.invalidateQueries();
+      const { notifyRegionChanged } = await import("@/lib/region-events");
+      notifyRegionChanged();
       router.back();
     } finally {
       setLoading(false);

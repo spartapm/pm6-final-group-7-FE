@@ -90,18 +90,19 @@ export default function HomePage() {
     isError: recsError,
     refetch: refetchRecs,
   } = useQuery({
-    queryKey: ["recommendations", recMode, guestRecKey],
+    queryKey: [
+      "recommendations",
+      recMode,
+      guestRecKey ||
+        `${me?.onboarding?.region_city ?? ""}|${me?.onboarding?.region_district ?? ""}`,
+    ],
     queryFn: async () => {
       if (recMode === "guest-preview" && guestOb) {
-        try {
-          return await apiFetch<{ items: RecommendationItem[] }>("/recommendations/preview", {
-            method: "POST",
-            body: JSON.stringify({ onboarding: guestOb }),
-          });
-        } catch {
-          // preview 실패 시 기본 추천으로 폴백
-          return apiFetch<{ items: RecommendationItem[] }>("/recommendations/home");
-        }
+        // preview 실패 시 인기/전국 폴백하지 않음 → Empty State
+        return apiFetch<{ items: RecommendationItem[] }>("/recommendations/preview", {
+          method: "POST",
+          body: JSON.stringify({ onboarding: guestOb }),
+        });
       }
       return apiFetch<{ items: RecommendationItem[] }>("/recommendations/home");
     },

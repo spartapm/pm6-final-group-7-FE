@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AiSummaryBlock } from "@/components/activity/AiSummarySection";
 import { formatScheduleDisplay } from "@/lib/scheduleDisplay";
 import { ASSETS } from "@/lib/assets";
+import { formatActivityRegion } from "@/lib/region-display";
 
 interface Props {
   activity: Activity;
@@ -21,24 +22,12 @@ interface Props {
   viewed?: boolean;
 }
 
-/** 지역 표기: region_city 또는 attributes.region_city */
+/** 지역 표기: 시·도 없으면 구·군만 (서울 가정 금지) */
 function regionLabel(activity: Activity): string | null {
-  if (!activity.region_district) {
-    return activity.category === "support" ? "전국" : null;
-  }
-  const fromAttr =
-    typeof activity.attributes?.region_city === "string"
-      ? activity.attributes.region_city
-      : null;
-  const city = (activity.region_city?.trim() || fromAttr?.trim() || "").replace(
-    /(특별시|광역시|특별자치시|도)$/,
-    ""
-  );
-  const cityShort = city || "서울";
-  return `${cityShort} ${activity.region_district}`;
+  return formatActivityRegion(activity);
 }
 
-function ViewedBadge() {
+export function ViewedBadge() {
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[#eceef2] px-1.5 py-0.5 text-[10px] font-medium text-[#9a9aa5]">
       <Image
@@ -48,7 +37,9 @@ function ViewedBadge() {
         height={10}
         unoptimized
         className="opacity-80"
+        aria-hidden
       />
+      <span aria-hidden>✓</span>
       확인함
     </span>
   );

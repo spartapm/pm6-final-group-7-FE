@@ -42,7 +42,7 @@ export function MyProfileCard({ me, isGuest = false, onPersonalize }: MyProfileC
 
   const nickname = me?.profile?.nickname ?? "회원";
   const demographics = formatDemographics(me?.onboarding?.gender, me?.onboarding?.age_band);
-  const region = formatRegion(me?.onboarding?.region_district);
+  const region = formatRegion(me?.onboarding?.region_district, me?.onboarding?.region_city);
   const career = formatCareerSummary(me?.onboarding?.career_job_code, me?.onboarding?.career_years);
   const interests = getInterestLabels(me);
 

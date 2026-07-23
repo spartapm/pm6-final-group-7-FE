@@ -85,11 +85,20 @@ export function normalizeGuestOnboarding(
 
 /** 로그인 상태면 서버에, 비로그인이면 로컬에 온보딩 답변 저장 */
 export async function saveOnboardingPatch(patch: OnboardingPatch): Promise<{ guest: boolean }> {
+  const regionTouched = "region_city" in patch || "region_district" in patch;
   if (await isAuthenticated()) {
     await apiFetch("/me/onboarding", { method: "PATCH", body: JSON.stringify(patch) });
+    if (regionTouched) {
+      const { notifyRegionChanged } = await import("@/lib/region-events");
+      notifyRegionChanged();
+    }
     return { guest: false };
   }
   patchGuestOnboarding(patch);
+  if (regionTouched) {
+    const { notifyRegionChanged } = await import("@/lib/region-events");
+    notifyRegionChanged();
+  }
   return { guest: true };
 }
 

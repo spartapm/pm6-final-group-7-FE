@@ -25,23 +25,19 @@ export function getSupportSummaryRows(activity: Activity): SupportDetailRow[] {
 }
 
 export function getSupportTarget(activity: Activity): string {
-  return attr(activity, "target") || "지원 대상 정보를 확인해 주세요.";
+  return attr(activity, "target");
 }
 
 export function getSupportApplyMethod(activity: Activity): string {
-  return attr(activity, "apply_method") || "온라인 또는 주민센터·담당 기관 문의";
+  return attr(activity, "apply_method");
 }
 
 export function getSupportDocuments(activity: Activity): string {
-  return attr(activity, "documents") || "신청 시 필요 서류는 담당 기관 안내를 확인해 주세요.";
+  return attr(activity, "documents");
 }
 
 export function getSupportDescription(activity: Activity): string {
-  return (
-    (activity.raw_content?.description as string | undefined) ??
-    activity.ai_summary ??
-    "지원 내용을 확인 중입니다."
-  );
+  return (activity.raw_content?.description as string | undefined)?.trim() ?? "";
 }
 
 export function getSupportTags(activity: Activity): string[] {
@@ -58,5 +54,6 @@ export function isAlwaysOpenSupport(activity: Activity): boolean {
 export function getSupportApplyPeriod(activity: Activity): string {
   if (isAlwaysOpenSupport(activity)) return "상시 접수";
   if (activity.apply_end) return `~ ${activity.apply_end.replace(/-/g, ".")} 까지`;
-  return "접수 기간 확인 필요";
+  if (activity.apply_start) return `${activity.apply_start.replace(/-/g, ".")} 부터`;
+  return "";
 }

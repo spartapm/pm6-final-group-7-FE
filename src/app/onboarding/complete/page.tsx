@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api-client";
 import { ASSETS } from "@/lib/assets";
 import { isAuthenticated, markGuestOnboardingComplete, syncGuestOnboarding } from "@/lib/guest-onboarding";
 import { clearOnboardingFlow } from "@/lib/onboarding";
+import { consumePostOnboardingNext } from "@/lib/auth-redirect";
 
 /** SCR-011 온보딩 완료 — 와이어프레임 시안 기준 */
 export default function OnboardingCompletePage() {
@@ -36,11 +37,7 @@ export default function OnboardingCompletePage() {
 
   async function handleStart() {
     if (loading) return;
-    if (guest) {
-      router.push("/login?next=/home");
-      return;
-    }
-    if (error) {
+    if (!guest && error) {
       setLoading(true);
       setError(null);
       try {
@@ -53,12 +50,8 @@ export default function OnboardingCompletePage() {
       setLoading(false);
     }
     clearOnboardingFlow();
-    router.push("/home");
-  }
-
-  function handleBrowseHome() {
-    clearOnboardingFlow();
-    router.push("/home");
+    // 8-A: 로그인 유도로 온보딩에 들어온 경우 원래 화면으로 복귀
+    router.push(consumePostOnboardingNext("/home"));
   }
 
   return (
@@ -104,18 +97,9 @@ export default function OnboardingCompletePage() {
           onClick={handleStart}
           className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-4 text-[18px] font-bold text-white disabled:opacity-50"
         >
-          {loading ? "준비 중..." : guest ? "로그인하고 시작하기" : "시작하기"}
+          {loading ? "준비 중..." : "시작하기"}
           {!loading && <span aria-hidden>→</span>}
         </button>
-        {guest && !loading && (
-          <button
-            type="button"
-            onClick={handleBrowseHome}
-            className="w-full py-2 text-[15px] font-bold text-primary"
-          >
-            홈에서 먼저 둘러보기
-          </button>
-        )}
       </div>
     </div>
   );

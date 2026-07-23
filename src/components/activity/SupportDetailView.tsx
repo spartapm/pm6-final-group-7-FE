@@ -62,6 +62,10 @@ export function SupportDetailView({
   const tags = getSupportTags(activity);
   const applyPeriod = getSupportApplyPeriod(activity);
   const ddayLabel = alwaysOpen ? "상시" : formatDeadline(activity.apply_end).replace("일 전", "일전");
+  const target = getSupportTarget(activity);
+  const applyMethod = getSupportApplyMethod(activity);
+  const documents = getSupportDocuments(activity);
+  const description = getSupportDescription(activity);
 
   return (
     <div className="bg-[#f5f4ff] pb-[var(--activity-action-bar-height)]">
@@ -103,22 +107,24 @@ export function SupportDetailView({
             <h2 className="mt-3 text-[18px] font-black leading-snug text-[#101828]">
               {activity.title}
             </h2>
-            <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f3f4f6] pt-4">
-              <div>
-                <p className="text-[18px] text-[#99a1af]">신청 기간</p>
-                <p className="mt-1 text-[18px] font-semibold text-[#364153]">{applyPeriod}</p>
+            {applyPeriod && (
+              <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f3f4f6] pt-4">
+                <div>
+                  <p className="text-[18px] text-[#99a1af]">신청 기간</p>
+                  <p className="mt-1 text-[18px] font-semibold text-[#364153]">{applyPeriod}</p>
+                </div>
+                {!alwaysOpen && (
+                  <span className="shrink-0 rounded-[14px] bg-[#f9fafb] px-4 py-2 text-[16px] font-black text-[#364153]">
+                    {ddayLabel}
+                  </span>
+                )}
               </div>
-              {!alwaysOpen && (
-                <span className="shrink-0 rounded-[14px] bg-[#f9fafb] px-4 py-2 text-[16px] font-black text-[#364153]">
-                  {ddayLabel}
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
         {summaryRows.length > 0 && (
-          <SupportSectionCard icon="📋" title="지원 정보">
+          <SupportSectionCard icon="📋" title="지원 요강">
             {summaryRows.map((row, index) => (
               <div
                 key={row.label}
@@ -135,23 +141,39 @@ export function SupportDetailView({
           </SupportSectionCard>
         )}
 
-        <SupportSectionCard icon="👥" title="지원 대상">
-          <p className="p-5 text-[18px] leading-relaxed text-[#364153]">{getSupportTarget(activity)}</p>
-        </SupportSectionCard>
-
-        <SupportSectionCard icon="📝" title="신청 방법">
-          <p className="p-5 text-[18px] leading-relaxed text-[#364153]">{getSupportApplyMethod(activity)}</p>
-        </SupportSectionCard>
-
-        <SupportSectionCard icon="📎" title="구비 서류">
-          <p className="p-5 text-[18px] leading-relaxed text-[#364153]">{getSupportDocuments(activity)}</p>
-        </SupportSectionCard>
-
-        <SupportSectionCard icon="💡" title="지원 내용">
-          <p className="p-5 text-[18px] leading-relaxed text-[#364153]">{getSupportDescription(activity)}</p>
-        </SupportSectionCard>
-
         <AiSummarySection activity={activity} variant="support" />
+
+        {target && (
+          <SupportSectionCard icon="👥" title="지원 대상">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {target}
+            </p>
+          </SupportSectionCard>
+        )}
+
+        {applyMethod && (
+          <SupportSectionCard icon="📝" title="신청 방법">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {applyMethod}
+            </p>
+          </SupportSectionCard>
+        )}
+
+        {documents && (
+          <SupportSectionCard icon="📎" title="구비 서류">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {documents}
+            </p>
+          </SupportSectionCard>
+        )}
+
+        {description && (
+          <SupportSectionCard icon="💡" title="지원 내용">
+            <p className="whitespace-pre-wrap break-words p-5 text-[18px] leading-relaxed text-[#364153]">
+              {description}
+            </p>
+          </SupportSectionCard>
+        )}
 
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 rounded-[14px] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">

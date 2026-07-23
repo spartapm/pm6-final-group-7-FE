@@ -8,7 +8,7 @@ import { enableDevSession, useDevAuthSession } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { getGuestOnboarding, syncGuestOnboarding } from "@/lib/guest-onboarding";
 import { getOnboardingPath } from "@/lib/onboarding";
-import { safeNextPath } from "@/lib/auth-redirect";
+import { safeNextPath, savePostOnboardingNext } from "@/lib/auth-redirect";
 import { ASSETS } from "@/lib/assets";
 import type { MeResponse } from "@/lib/types";
 
@@ -37,6 +37,7 @@ function LoginForm() {
           router.push(requestedNext);
           return;
         }
+        savePostOnboardingNext(requestedNext);
         router.push(getOnboardingPath(me.onboarding?.onboarding_step ?? "region"));
         return;
       }
@@ -74,6 +75,7 @@ function LoginForm() {
       ? getOnboardingPath(guest.onboarding_step)
       : null;
     const nextPath = safeNextPath(fromQuery ?? fallbackNext, "/home");
+    savePostOnboardingNext(nextPath);
     const next = `?next=${encodeURIComponent(nextPath)}`;
     await supabase.auth.signInWithOAuth({
       provider: "kakao",
@@ -106,19 +108,6 @@ function LoginForm() {
       >
         <span className="text-xl">💬</span>
         {loading ? "로그인 중..." : devMode ? "개발 로그인 (카카오 대체)" : "카카오톡으로 시작하기"}
-      </button>
-
-      {/* M-22: 이메일 로그인 진입 링크 */}
-      <button
-        type="button"
-        onClick={() => {
-          const next = searchParams.get("next");
-          const q = next ? `?next=${encodeURIComponent(next)}` : "";
-          router.push(`/login/email${q}`);
-        }}
-        className="mx-auto mt-4 block text-[15px] font-semibold text-text-muted underline underline-offset-4"
-      >
-        이메일로 로그인하기
       </button>
 
       <p className="mt-6 text-center text-[13px] text-text-muted">

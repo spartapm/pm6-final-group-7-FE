@@ -1,4 +1,5 @@
 import { CAREER_JOBS, getOrderedDirections } from "@/lib/onboarding";
+import { formatUserRegionLabel } from "@/lib/region-display";
 import type { MeResponse } from "@/lib/types";
 
 export const INTEREST_DIRECTION_LABELS: Record<string, string> = {
@@ -17,9 +18,11 @@ export function formatDemographics(gender: string | null | undefined, ageBand: s
   return parts.length > 0 ? parts.join(" · ") : "정보 없음";
 }
 
-export function formatRegion(district: string | null | undefined): string | null {
-  if (!district) return null;
-  return `서울 ${district}`;
+export function formatRegion(
+  district: string | null | undefined,
+  city?: string | null | undefined
+): string | null {
+  return formatUserRegionLabel(city, district);
 }
 
 export function formatCareerSummary(

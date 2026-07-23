@@ -1,5 +1,6 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import type { Activity } from "@/lib/types";
+import { formatActivityRegion } from "@/lib/region-display";
 
 export interface LearningDetailRow {
   label: string;
@@ -110,18 +111,23 @@ export function getProgramRows(activity: Activity): LearningDetailRow[] {
     });
   }
   if (activity.region_district) {
-    rows.push({
-      label: "장소",
-      value: `서울 ${activity.region_district}`,
-      withPin: true,
-    });
+    const place = formatActivityRegion(activity);
+    if (place) {
+      rows.push({
+        label: "장소",
+        value: place,
+        withPin: true,
+      });
+    }
   }
   if (attr(activity, "class_type")) {
     rows.push({ label: "수강방식", value: attr(activity, "class_type") });
   }
   if (attr(activity, "target")) rows.push({ label: "대상", value: attr(activity, "target") });
   if (attr(activity, "difficulty")) rows.push({ label: "난이도", value: attr(activity, "difficulty") });
-  rows.push({ label: "신청기간", value: applyPeriod });
+  if (activity.apply_start || activity.apply_end) {
+    rows.push({ label: "신청기간", value: applyPeriod });
+  }
   if (activity.apply_end) {
     rows.push({
       label: "신청마감",
@@ -135,17 +141,11 @@ export function getProgramRows(activity: Activity): LearningDetailRow[] {
 }
 
 export function getProgramDescription(activity: Activity): string {
-  return (
-    (activity.raw_content?.description as string | undefined) ??
-    activity.ai_summary ??
-    "상세 내용이 준비 중입니다."
-  );
+  return ((activity.raw_content?.description as string | undefined) ?? "").trim();
 }
 
 export function getProgramQualifications(activity: Activity): string {
-  const explicit = attr(activity, "qualifications");
-  if (explicit) return explicit;
-  return "별도 자격 요건 없음";
+  return attr(activity, "qualifications");
 }
 
 export function getProgramTags(activity: Activity): string[] {

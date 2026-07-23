@@ -38,7 +38,7 @@ function ScheduleRow({ item }: { item: SchedulePreviewItem }) {
           {(dateLabel || item.district) && (
             <p className="mt-1 text-[13.5px] text-text-muted">
               {dateLabel}
-              {item.district ? ` · 서울 ${item.district}` : ""}
+              {item.district ? ` · ${item.district}` : ""}
             </p>
           )}
         </div>

@@ -11,10 +11,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
 import { createEmptyFilters } from "@/lib/jobs-filters";
 import {
-  EDUCATION_TAB_FILTERS,
-  HOBBY_TAB_FILTERS,
   filterLearningActivities,
+  getEducationTabFilters,
+  getHobbyTabFilters,
 } from "@/lib/learning-filters";
+import { activitiesQueryUrl, useUserRegion } from "@/hooks/useUserRegion";
 import { isViewed } from "@/lib/viewed";
 import type { Activity } from "@/lib/types";
 
@@ -41,14 +42,22 @@ function matchesSearch(activity: Activity, q: string): boolean {
 }
 
 export default function LearningPage() {
+  const { regionCity, regionDistrict } = useUserRegion();
   const [category, setCategory] = useState<"education" | "hobby">("education");
+  const educationFilterDefs = useMemo(() => getEducationTabFilters(regionCity), [regionCity]);
+  const hobbyFilterDefs = useMemo(() => getHobbyTabFilters(regionCity), [regionCity]);
   const [educationFilters, setEducationFilters] = useState(() =>
-    createEmptyFilters(EDUCATION_TAB_FILTERS)
+    createEmptyFilters(educationFilterDefs)
   );
-  const [hobbyFilters, setHobbyFilters] = useState(() => createEmptyFilters(HOBBY_TAB_FILTERS));
+  const [hobbyFilters, setHobbyFilters] = useState(() => createEmptyFilters(hobbyFilterDefs));
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [viewedTick, setViewedTick] = useState(0);
+
+  useEffect(() => {
+    setEducationFilters(createEmptyFilters(educationFilterDefs));
+    setHobbyFilters(createEmptyFilters(hobbyFilterDefs));
+  }, [educationFilterDefs, hobbyFilterDefs]);
 
   useEffect(() => {
     try {
@@ -62,12 +71,16 @@ export default function LearningPage() {
     return () => window.removeEventListener("ov-viewed-changed", onViewed);
   }, []);
 
-  const activeFilterDefs = category === "education" ? EDUCATION_TAB_FILTERS : HOBBY_TAB_FILTERS;
+  const activeFilterDefs = category === "education" ? educationFilterDefs : hobbyFilterDefs;
   const activeFilters = category === "education" ? educationFilters : hobbyFilters;
+  const selectedDistricts = activeFilters.region ?? [];
 
   const { data, isLoading } = useQuery({
-    queryKey: ["activities", category],
-    queryFn: () => apiFetch<{ items: Activity[] }>(`/activities?category=${category}`),
+    queryKey: ["activities", category, regionCity, regionDistrict, selectedDistricts],
+    queryFn: () =>
+      apiFetch<{ items: Activity[] }>(
+        activitiesQueryUrl(category, regionCity, regionDistrict, selectedDistricts)
+      ),
   });
 
   const filteredItems = useMemo(() => {
@@ -90,9 +103,9 @@ export default function LearningPage() {
   function handleCategoryChange(next: string) {
     const nextCategory = next as "education" | "hobby";
     if (nextCategory === "education") {
-      setEducationFilters(createEmptyFilters(EDUCATION_TAB_FILTERS));
+      setEducationFilters(createEmptyFilters(educationFilterDefs));
     } else {
-      setHobbyFilters(createEmptyFilters(HOBBY_TAB_FILTERS));
+      setHobbyFilters(createEmptyFilters(hobbyFilterDefs));
     }
     setCategory(nextCategory);
     setSearch("");
@@ -113,9 +126,9 @@ export default function LearningPage() {
 
   function resetFilters() {
     if (category === "education") {
-      setEducationFilters(createEmptyFilters(EDUCATION_TAB_FILTERS));
+      setEducationFilters(createEmptyFilters(educationFilterDefs));
     } else {
-      setHobbyFilters(createEmptyFilters(HOBBY_TAB_FILTERS));
+      setHobbyFilters(createEmptyFilters(hobbyFilterDefs));
     }
   }
 
@@ -141,7 +154,7 @@ export default function LearningPage() {
       <ListCategoryTabs tabs={PAGE_TABS} activeId={category} onChange={handleCategoryChange} />
 
       <ActivityFilterBar
-        key={category}
+        key={`${category}-${regionCity}`}
         filters={activeFilterDefs}
         values={activeFilters}
         onChange={handleFilterChange}

@@ -10,11 +10,12 @@ import { ListPagination } from "@/components/list/ListPagination";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
 import {
-  JOB_TAB_FILTERS,
-  SUPPORT_TAB_FILTERS,
   createEmptyFilters,
   filterActivities,
+  getJobTabFilters,
+  getSupportTabFilters,
 } from "@/lib/jobs-filters";
+import { activitiesQueryUrl, useUserRegion } from "@/hooks/useUserRegion";
 import { isViewed } from "@/lib/viewed";
 import type { Activity } from "@/lib/types";
 
@@ -41,12 +42,20 @@ function matchesSearch(activity: Activity, q: string): boolean {
 }
 
 export default function JobsPage() {
+  const { regionCity, regionDistrict } = useUserRegion();
   const [category, setCategory] = useState<"job" | "support">("job");
-  const [jobFilters, setJobFilters] = useState(() => createEmptyFilters(JOB_TAB_FILTERS));
-  const [supportFilters, setSupportFilters] = useState(() => createEmptyFilters(SUPPORT_TAB_FILTERS));
+  const jobFilterDefs = useMemo(() => getJobTabFilters(regionCity), [regionCity]);
+  const supportFilterDefs = useMemo(() => getSupportTabFilters(regionCity), [regionCity]);
+  const [jobFilters, setJobFilters] = useState(() => createEmptyFilters(jobFilterDefs));
+  const [supportFilters, setSupportFilters] = useState(() => createEmptyFilters(supportFilterDefs));
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [viewedTick, setViewedTick] = useState(0);
+
+  useEffect(() => {
+    setJobFilters(createEmptyFilters(jobFilterDefs));
+    setSupportFilters(createEmptyFilters(supportFilterDefs));
+  }, [jobFilterDefs, supportFilterDefs]);
 
   useEffect(() => {
     try {
@@ -60,12 +69,16 @@ export default function JobsPage() {
     return () => window.removeEventListener("ov-viewed-changed", onViewed);
   }, []);
 
-  const activeFilterDefs = category === "job" ? JOB_TAB_FILTERS : SUPPORT_TAB_FILTERS;
+  const activeFilterDefs = category === "job" ? jobFilterDefs : supportFilterDefs;
   const activeFilters = category === "job" ? jobFilters : supportFilters;
+  const selectedDistricts = activeFilters.region ?? [];
 
   const { data, isLoading } = useQuery({
-    queryKey: ["activities", category],
-    queryFn: () => apiFetch<{ items: Activity[] }>(`/activities?category=${category}`),
+    queryKey: ["activities", category, regionCity, regionDistrict, selectedDistricts],
+    queryFn: () =>
+      apiFetch<{ items: Activity[] }>(
+        activitiesQueryUrl(category, regionCity, regionDistrict, selectedDistricts)
+      ),
   });
 
   const filteredItems = useMemo(() => {
@@ -88,9 +101,9 @@ export default function JobsPage() {
   function handleCategoryChange(next: string) {
     const nextCategory = next as "job" | "support";
     if (nextCategory === "job") {
-      setJobFilters(createEmptyFilters(JOB_TAB_FILTERS));
+      setJobFilters(createEmptyFilters(jobFilterDefs));
     } else {
-      setSupportFilters(createEmptyFilters(SUPPORT_TAB_FILTERS));
+      setSupportFilters(createEmptyFilters(supportFilterDefs));
     }
     setCategory(nextCategory);
     setSearch("");
@@ -111,9 +124,9 @@ export default function JobsPage() {
 
   function resetFilters() {
     if (category === "job") {
-      setJobFilters(createEmptyFilters(JOB_TAB_FILTERS));
+      setJobFilters(createEmptyFilters(jobFilterDefs));
     } else {
-      setSupportFilters(createEmptyFilters(SUPPORT_TAB_FILTERS));
+      setSupportFilters(createEmptyFilters(supportFilterDefs));
     }
   }
 
@@ -139,7 +152,7 @@ export default function JobsPage() {
       <ListCategoryTabs tabs={PAGE_TABS} activeId={category} onChange={handleCategoryChange} />
 
       <ActivityFilterBar
-        key={category}
+        key={`${category}-${regionCity}`}
         filters={activeFilterDefs}
         values={activeFilters}
         onChange={handleFilterChange}
