@@ -48,15 +48,7 @@ function JobDeadlineBadge({ applyEnd }: { applyEnd: string | null }) {
 
 function TagPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-3 py-1.5 text-[18px] font-semibold text-[#4a5565]">
-      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden>
-        <path
-          d="M2 2h5l3 3v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"
-          stroke="#9aa0a8"
-          strokeWidth="1.2"
-        />
-        <circle cx="4.5" cy="4.5" r="0.8" fill="#9aa0a8" />
-      </svg>
+    <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-3 py-1.5 text-[18px] font-semibold text-[#4a5565]">
       {label}
     </span>
   );
@@ -151,17 +143,11 @@ export function JobDetailView({
                   <span className="text-[18px] font-bold text-[#4a5565]">{row.label}</span>
                 </div>
                 <div className="flex min-w-0 flex-1 items-center px-4 py-3">
-                  {row.withPin ? (
-                    <span className="flex items-center gap-1 text-[18px] text-[#1e2939]">
-                                            {row.value}
-                    </span>
-                  ) : (
-                    <span
-                      className={`text-[18px] text-[#1e2939] ${row.bold ? "font-bold" : "font-normal"}`}
-                    >
-                      {row.value}
-                    </span>
-                  )}
+                  <span
+                    className={`text-[18px] text-[#1e2939] ${row.bold ? "font-bold" : "font-normal"}`}
+                  >
+                    {row.value}
+                  </span>
                 </div>
               </div>
             ))}
@@ -230,7 +216,7 @@ export function JobDetailView({
         )}
       </div>
 
-      <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-2 border-t border-[#e5e7eb] bg-white px-4 py-2.5 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+      <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-2 overflow-visible border-t border-[#e5e7eb] bg-white px-4 py-2.5 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
         <BookmarkActionButton
           bookmarked={Boolean(activity.bookmarked)}
           disabled={loading || isExpired}

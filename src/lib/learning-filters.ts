@@ -2,6 +2,11 @@ import { regionDistrictOptionsForCity, type FilterDefinition } from "@/lib/jobs-
 import type { Activity } from "@/lib/types";
 import { matchesApplyStatus } from "@/lib/jobs-filters";
 import { isAdultOrientedActivity } from "@/lib/adultTargetFilter";
+import {
+  educationFieldMatches,
+  hobbyFieldMatches,
+} from "@/lib/learning-field-aliases";
+import { districtMatchesFilter } from "@/lib/regions";
 
 /** 그룹별 다중 선택 배열 (list=체크 다중, chips=라디오 단일 0~1개) */
 export type LearningFilterValues = Record<string, string[]>;
@@ -130,22 +135,37 @@ function matchCost(activity: Activity, value: string): boolean {
   return true;
 }
 
-function matchLearningField(activity: Activity, value: string): boolean {
+function matchLearningField(activity: Activity, value: string, tab: "education" | "hobby"): boolean {
   const primary = attr(activity, "field") || attr(activity, "field_primary");
   const secondary = attr(activity, "field_secondary");
-  if (value === "기타") {
-    const known = new Set([
-      "미술·공예", "운동·건강", "음악·공연", "여행", "봉사·나눔", "사진·영상",
-      "문화·관람", "나들이·체험", "체험·배움",
-    ]);
-    if (!primary && !secondary) return true;
-    return !known.has(primary) && !known.has(secondary);
-  }
-  if (primary === value || secondary === value) return true;
   const tags = activity.attributes?.tags;
-  if (Array.isArray(tags) && tags.some((t) => t === value)) return true;
-  if (primary || secondary) return false;
-  return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
+  const tagList = Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string") : [];
+  const candidates = [primary, secondary, ...tagList];
+
+  if (tab === "hobby") {
+    if (hobbyFieldMatches(value, primary, secondary, ...tagList)) return true;
+    // 분야 비어 있으면 제목 키워드 폴백
+    if (!primary && !secondary && tagList.length === 0) {
+      return activity.title.includes(value) || (activity.ai_summary?.includes(value) ?? false);
+    }
+    return false;
+  }
+
+  // education
+  if (educationFieldMatches(value, ...candidates)) return true;
+  if (!primary && !secondary && tagList.length === 0) {
+    // work24 등 field 미적재: 제목으로 칩 키워드 매칭
+    const hay = `${activity.title} ${activity.ai_summary ?? ""}`;
+    if (value === "디지털·AI") return /AI|디지털|IT|컴퓨터|소프트웨어|데이터/i.test(hay);
+    if (value === "자격증") return /자격|기능사|산업기사/.test(hay);
+    if (value === "건강·복지") return /요양|복지|간호|보건|돌봄/.test(hay);
+    if (value === "언어") return /영어|일본어|중국어|외국어|한국어/.test(hay);
+    if (value === "요리·생활") return /요리|조리|제빵|바리스타|생활/.test(hay);
+    if (value === "미디어") return /영상|미디어|콘텐츠|방송/.test(hay);
+    if (value === "직업역량") return hay.trim().length > 0;
+    return false;
+  }
+  return false;
 }
 
 /** 그룹 내 OR: 선택 값 중 하나라도 만족하면 통과. 미선택이면 통과. */
@@ -154,24 +174,36 @@ function groupMatch(selected: string[] | undefined, matcher: (value: string) => 
   return selected.some((v) => matcher(v));
 }
 
+function matchClassType(activity: Activity, value: string): boolean {
+  const raw = attr(activity, "class_type") || attr(activity, "edcMthType");
+  if (!raw) return true;
+  const normalized = /온\s*라인|사이버|원격|비대면|e-?\s*러닝|이러닝/i.test(raw)
+    ? "온라인"
+    : /오프\s*라인|대면|집체|현장|혼합|블렌/i.test(raw)
+      ? "오프라인"
+      : raw;
+  return normalized === value;
+}
+
 export function filterLearningActivities(
   items: Activity[],
-  filters: LearningFilterValues
+  filters: LearningFilterValues,
+  tab: "education" | "hobby" = "education",
+  regionCity?: string | null
 ): Activity[] {
   return items.filter((activity) => {
     if (!isAdultOrientedActivity(activity)) return false;
 
-    if (!groupMatch(filters.field, (v) => matchLearningField(activity, v))) return false;
-
-    if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;
+    if (!groupMatch(filters.field, (v) => matchLearningField(activity, v, tab))) return false;
 
     if (
-      !groupMatch(filters.classType, (v) => {
-        const ct = attr(activity, "class_type");
-        return !ct || ct === v;
-      })
+      !groupMatch(filters.region, (v) =>
+        districtMatchesFilter(activity.region_district, v, regionCity)
+      )
     )
       return false;
+
+    if (!groupMatch(filters.classType, (v) => matchClassType(activity, v))) return false;
 
     if (!groupMatch(filters.cost, (v) => matchCost(activity, v))) return false;
 

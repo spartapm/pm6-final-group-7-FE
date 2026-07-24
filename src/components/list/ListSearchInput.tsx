@@ -26,11 +26,14 @@ export function ListSearchInput({
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
         />
         <input
-          type="search"
+          type="text"
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-xl border border-[#e5e7eb] bg-[#f8f9fc] py-3 pl-10 pr-10 text-[14px] text-[#141414] outline-none placeholder:text-[#9a9aa5] focus:border-primary"
+          className="w-full rounded-xl border border-[#e5e7eb] bg-[#f8f9fc] py-3 pl-10 pr-10 text-[14px] text-[#141414] outline-none placeholder:text-[#9a9aa5] focus:border-primary [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
           maxLength={30}
         />
         {value && (

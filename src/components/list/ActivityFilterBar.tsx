@@ -162,8 +162,8 @@ export function ActivityFilterBar({ filters, values, onChange, onReset }: Activi
 
   return (
     <div className="bg-white">
-      {/* 브라우저 기본 스크롤바 노출, 좌우 화살표 없음 — 맨 앞 초기화 */}
-      <div className="flex gap-2 overflow-x-auto border-b border-[#eceef2] px-4 py-3">
+      {/* IV-17: 필터 칩 행 스크롤바 노출 (본문 스크롤바와 별개) */}
+      <div className="flex gap-2 overflow-x-auto border-b border-[#eceef2] px-4 py-3 [scrollbar-width:thin]">
         {onReset && (
           <button
             type="button"

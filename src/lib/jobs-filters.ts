@@ -1,5 +1,5 @@
 import { CAREER_JOBS } from "@/lib/onboarding";
-import { getDistrictsForCity } from "@/lib/regions";
+import { districtMatchesFilter, getDistrictsForCity } from "@/lib/regions";
 import { normalizeWorkDays } from "@/lib/workDaysNormalize";
 import type { Activity } from "@/lib/types";
 import { differenceInCalendarDays, parseISO } from "date-fns";
@@ -227,14 +227,20 @@ function groupMatch(selected: string[] | undefined, matcher: (value: string) => 
 export function filterActivities(
   items: Activity[],
   category: "job" | "support",
-  filters: JobsFilterValues
+  filters: JobsFilterValues,
+  regionCity?: string | null
 ): Activity[] {
   return items.filter((activity) => {
     if (category === "job") {
       if (!groupMatch(filters.industry, (v) => matchIndustry(activity, v))) return false;
 
-      // 지역: 선택 시 해당 구만 (region_district null 공고는 제외)
-      if (!groupMatch(filters.region, (v) => activity.region_district === v)) return false;
+      // 지역: 경기 시는 하위 구 공고도 매칭
+      if (
+        !groupMatch(filters.region, (v) =>
+          districtMatchesFilter(activity.region_district, v, regionCity)
+        )
+      )
+        return false;
 
       if (!groupMatch(filters.workType, (v) => matchWorkType(activity, v))) return false;
 
@@ -284,7 +290,12 @@ export function filterActivities(
 
     // 지역: 전국(region_district null) 지원사업은 어떤 구를 선택해도 노출 (FL-05 정책)
     if (
-      !groupMatch(filters.region, (v) => !activity.region_district || activity.region_district === v)
+      !groupMatch(
+        filters.region,
+        (v) =>
+          !activity.region_district ||
+          districtMatchesFilter(activity.region_district, v, regionCity)
+      )
     )
       return false;
 

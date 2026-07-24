@@ -72,7 +72,13 @@ export function getJobQualificationRows(activity: Activity): JobDetailRow[] {
   };
   push("경력 조건", attr(activity, "career_requirement"));
   push("학력 조건", attr(activity, "education_requirement"));
-  push("모집인원", attr(activity, "recruit_count") ? `${attr(activity, "recruit_count")}명` : "");
+  const recruitRaw = attr(activity, "recruit_count").trim();
+  const recruitLabel = recruitRaw
+    ? /명\s*$/.test(recruitRaw)
+      ? recruitRaw
+      : `${recruitRaw}명`
+    : "";
+  push("모집인원", recruitLabel);
   push("전형 방법", attr(activity, "selection_method"));
   push("접수 방법", attr(activity, "apply_method"));
   push("제출 서류", attr(activity, "required_documents"));

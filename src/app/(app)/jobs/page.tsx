@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RecommendationCard } from "@/components/activity/ActivityCards";
 import { ActivityFilterBar } from "@/components/list/ActivityFilterBar";
@@ -14,8 +14,11 @@ import {
   filterActivities,
   getJobTabFilters,
   getSupportTabFilters,
+  type JobsFilterValues,
 } from "@/lib/jobs-filters";
 import { activitiesQueryUrl, useUserRegion } from "@/hooks/useUserRegion";
+import { useListPagePersistence } from "@/hooks/useListPagePersistence";
+import { loadListPageState, type ListPageState } from "@/lib/list-page-state";
 import { isViewed } from "@/lib/viewed";
 import type { Activity } from "@/lib/types";
 
@@ -25,6 +28,7 @@ const PAGE_TABS = [
 ];
 
 const TAB_KEY = "oyukirang-jobs-tab";
+const LIST_STATE_KEY = "oyukirang-jobs-list-state";
 const PAGE_SIZE = 10;
 
 function matchesSearch(activity: Activity, q: string): boolean {
@@ -41,33 +45,73 @@ function matchesSearch(activity: Activity, q: string): boolean {
   return hay.includes(needle);
 }
 
+function readInitialJobsState(): {
+  category: "job" | "support";
+  jobFilters: JobsFilterValues | null;
+  supportFilters: JobsFilterValues | null;
+  search: string;
+  page: number;
+} {
+  if (typeof window === "undefined") {
+    return { category: "job", jobFilters: null, supportFilters: null, search: "", page: 1 };
+  }
+  const saved = loadListPageState<JobsFilterValues>(LIST_STATE_KEY);
+  let category: "job" | "support" = "job";
+  try {
+    const tab = sessionStorage.getItem(TAB_KEY);
+    if (tab === "job" || tab === "support") category = tab;
+    else if (saved?.category === "job" || saved?.category === "support") category = saved.category;
+  } catch {
+    /* ignore */
+  }
+  if (!saved) {
+    return { category, jobFilters: null, supportFilters: null, search: "", page: 1 };
+  }
+  return {
+    category,
+    jobFilters: saved.filtersByCategory.job ?? null,
+    supportFilters: saved.filtersByCategory.support ?? null,
+    search: typeof saved.search === "string" ? saved.search : "",
+    page: typeof saved.page === "number" && saved.page >= 1 ? saved.page : 1,
+  };
+}
+
 export default function JobsPage() {
   const { regionCity, regionDistrict } = useUserRegion();
-  const [category, setCategory] = useState<"job" | "support">("job");
+  const [initial] = useState(readInitialJobsState);
+  const [category, setCategory] = useState<"job" | "support">(initial.category);
   const jobFilterDefs = useMemo(() => getJobTabFilters(regionCity), [regionCity]);
   const supportFilterDefs = useMemo(() => getSupportTabFilters(regionCity), [regionCity]);
-  const [jobFilters, setJobFilters] = useState(() => createEmptyFilters(jobFilterDefs));
-  const [supportFilters, setSupportFilters] = useState(() => createEmptyFilters(supportFilterDefs));
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [jobFilters, setJobFilters] = useState(
+    () => initial.jobFilters ?? createEmptyFilters(getJobTabFilters(regionCity))
+  );
+  const [supportFilters, setSupportFilters] = useState(
+    () => initial.supportFilters ?? createEmptyFilters(getSupportTabFilters(regionCity))
+  );
+  const [search, setSearch] = useState(initial.search);
+  const [page, setPage] = useState(initial.page);
   const [viewedTick, setViewedTick] = useState(0);
 
-  useEffect(() => {
-    setJobFilters(createEmptyFilters(jobFilterDefs));
-    setSupportFilters(createEmptyFilters(supportFilterDefs));
-  }, [jobFilterDefs, supportFilterDefs]);
-
-  useEffect(() => {
+  const handleRestore = useCallback((saved: ListPageState<JobsFilterValues>) => {
     try {
-      const saved = sessionStorage.getItem(TAB_KEY);
-      if (saved === "job" || saved === "support") setCategory(saved);
+      const tab = sessionStorage.getItem(TAB_KEY);
+      if (tab === "job" || tab === "support") setCategory(tab);
+      else if (saved.category === "job" || saved.category === "support") setCategory(saved.category);
     } catch {
-      /* ignore */
+      if (saved.category === "job" || saved.category === "support") setCategory(saved.category);
     }
-    const onViewed = () => setViewedTick((t) => t + 1);
-    window.addEventListener("ov-viewed-changed", onViewed);
-    return () => window.removeEventListener("ov-viewed-changed", onViewed);
+    if (saved.filtersByCategory.job) setJobFilters(saved.filtersByCategory.job);
+    if (saved.filtersByCategory.support) setSupportFilters(saved.filtersByCategory.support);
+    if (typeof saved.search === "string") setSearch(saved.search);
+    if (typeof saved.page === "number" && saved.page >= 1) setPage(saved.page);
   }, []);
+
+  const handleRegionChangedByUser = useCallback(() => {
+    setJobFilters(createEmptyFilters(getJobTabFilters(regionCity)));
+    setSupportFilters(createEmptyFilters(getSupportTabFilters(regionCity)));
+    setSearch("");
+    setPage(1);
+  }, [regionCity]);
 
   const activeFilterDefs = category === "job" ? jobFilterDefs : supportFilterDefs;
   const activeFilters = category === "job" ? jobFilters : supportFilters;
@@ -83,17 +127,38 @@ export default function JobsPage() {
 
   const filteredItems = useMemo(() => {
     if (!data?.items) return [];
-    return filterActivities(data.items, category, activeFilters).filter((a) =>
+    return filterActivities(data.items, category, activeFilters, regionCity).filter((a) =>
       matchesSearch(a, search)
     );
-  }, [data?.items, category, activeFilters, search]);
+  }, [data?.items, category, activeFilters, search, regionCity]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filteredItems.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const { skipPageResetRef } = useListPagePersistence<JobsFilterValues>({
+    storageKey: LIST_STATE_KEY,
+    regionCity,
+    category,
+    filtersByCategory: { job: jobFilters, support: supportFilters },
+    search,
+    page: safePage,
+    listReady: !isLoading,
+    pageItemCount: pageItems.length,
+    onRestore: handleRestore,
+    onRegionChangedByUser: handleRegionChangedByUser,
+  });
 
   useEffect(() => {
+    if (skipPageResetRef.current) return;
     setPage(1);
-  }, [category, activeFilters, search]);
+  }, [category, activeFilters, search, skipPageResetRef]);
+
+  useEffect(() => {
+    const onViewed = () => setViewedTick((t) => t + 1);
+    window.addEventListener("ov-viewed-changed", onViewed);
+    return () => window.removeEventListener("ov-viewed-changed", onViewed);
+  }, []);
 
   const hasActiveFilters = Object.values(activeFilters).some((arr) => arr.length > 0);
   const emptyFromFilter = (data?.items?.length ?? 0) > 0 && filteredItems.length === 0;
@@ -180,7 +245,7 @@ export default function JobsPage() {
           />
         ))}
         {!isLoading && filteredItems.length > 0 && (
-          <ListPagination page={page} totalPages={totalPages} onChange={setPage} />
+          <ListPagination page={safePage} totalPages={totalPages} onChange={setPage} />
         )}
       </div>
     </div>

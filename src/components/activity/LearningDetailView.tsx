@@ -227,7 +227,7 @@ export function LearningDetailView({
         )}
       </div>
 
-      <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-2 border-t border-[#e5e7eb] bg-white px-4 py-2.5 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+      <div className="activity-action-bar fixed left-1/2 z-30 flex w-full max-w-[390px] -translate-x-1/2 gap-2 overflow-visible border-t border-[#e5e7eb] bg-white px-4 py-2.5 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
         <BookmarkActionButton
           bookmarked={Boolean(activity.bookmarked)}
           disabled={loading || isExpired}

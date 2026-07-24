@@ -10,65 +10,52 @@ interface Props {
   accentBorder?: string;
 }
 
-/** 세션 동안만 유지 — 탭/브라우저를 끄면 다시 노출 */
-const LIKE_TIP_DISMISSED_KEY = "oyukirang-like-tip-dismissed";
+/** SCR-016 #9: 찜 안내 말풍선 — 최초 1회만 (localStorage) */
+const LIKE_TIP_SEEN_KEY = "oyukirang-like-tip-seen";
 
-function isLikeTipDismissed(): boolean {
-  if (typeof window === "undefined") return false;
+function hasSeenLikeTip(): boolean {
+  if (typeof window === "undefined") return true;
   try {
-    return sessionStorage.getItem(LIKE_TIP_DISMISSED_KEY) === "1";
+    return localStorage.getItem(LIKE_TIP_SEEN_KEY) === "1";
   } catch {
-    return false;
+    return true;
   }
 }
 
-function dismissLikeTip() {
+function markLikeTipSeen() {
   try {
-    sessionStorage.setItem(LIKE_TIP_DISMISSED_KEY, "1");
+    localStorage.setItem(LIKE_TIP_SEEN_KEY, "1");
   } catch {
     // storage 접근 실패 무시
   }
 }
 
 /**
- * 하단 액션 바 찜 버튼 — 안내 말풍선 + X로 세션 동안 닫기
+ * 하단 액션 바 찜 버튼 — 안내 말풍선 최초 1회
  * "찜하면 캘린더에 자동 등록돼요"
+ * React Strict Mode 이중 마운트에서도 보이도록, 노출 후 짧게 유지한 뒤 seen 처리
  */
 export function BookmarkActionButton({ bookmarked, disabled, onClick, accentBorder }: Props) {
   const [showTip, setShowTip] = useState(false);
 
   useEffect(() => {
-    setShowTip(!isLikeTipDismissed());
+    if (hasSeenLikeTip()) {
+      setShowTip(false);
+      return;
+    }
+    setShowTip(true);
+    const t = window.setTimeout(() => {
+      markLikeTipSeen();
+    }, 800);
+    return () => window.clearTimeout(t);
   }, []);
 
-  function handleDismissTip(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dismissLikeTip();
-    setShowTip(false);
-  }
-
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0 overflow-visible">
       {showTip && (
-        <div className="absolute bottom-full left-0 z-40 mb-2 w-max max-w-[260px]">
-          <div className="flex items-start gap-2 rounded-xl bg-[#3a3f52] px-3 py-2 text-[13px] font-semibold text-white shadow-lg">
-            <span className="min-w-0 flex-1 leading-snug">찜하면 캘린더에 자동 등록돼요</span>
-            <button
-              type="button"
-              onClick={handleDismissTip}
-              className="-mr-0.5 -mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
-              aria-label="안내 닫기"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-                <path
-                  d="M1.5 1.5l7 7M8.5 1.5l-7 7"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+        <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 w-max max-w-[min(260px,70vw)]">
+          <div className="rounded-xl bg-[#3a3f52] px-3 py-2 text-[13px] font-semibold leading-snug text-white shadow-lg">
+            찜하면 캘린더에 자동 등록돼요
           </div>
           <div
             className="ml-5 h-2 w-3 bg-[#3a3f52]"

@@ -39,7 +39,6 @@ export function ViewedBadge() {
         className="opacity-80"
         aria-hidden
       />
-      <span aria-hidden>✓</span>
       확인함
     </span>
   );

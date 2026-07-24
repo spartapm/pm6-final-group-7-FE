@@ -25,17 +25,12 @@ export const SUPPORTED_CITIES: RegionCity[] = [
   {
     label: "경기",
     code: "경기도",
+    /** 필터·온보딩: 시만 노출 (구는 GU_TO_SI로 시에 귀속) */
     districts: [
       "수원시", "성남시", "의정부시", "안양시", "부천시", "광명시", "평택시", "동두천시",
       "안산시", "고양시", "과천시", "구리시", "남양주시", "오산시", "시흥시", "군포시",
       "의왕시", "하남시", "용인시", "파주시", "이천시", "안성시", "김포시", "화성시",
       "광주시", "양주시", "포천시", "여주시",
-      "장안구", "권선구", "팔달구", "영통구",
-      "수정구", "중원구", "분당구",
-      "만안구", "동안구",
-      "상록구", "단원구",
-      "덕양구", "일산동구", "일산서구",
-      "처인구", "기흥구", "수지구",
     ],
   },
   {
@@ -102,3 +97,69 @@ export function getAllSupportedDistricts(): string[] {
 export function isSupportedCityLabel(label: string): boolean {
   return SUPPORTED_CITY_LABELS.includes(label);
 }
+
+/** 경기 구 → 시 (목록 정렬·필터 매칭용) */
+export const GYEONGGI_GU_TO_SI: Record<string, string> = {
+  장안구: "수원시",
+  권선구: "수원시",
+  팔달구: "수원시",
+  영통구: "수원시",
+  수정구: "성남시",
+  중원구: "성남시",
+  분당구: "성남시",
+  만안구: "안양시",
+  동안구: "안양시",
+  상록구: "안산시",
+  단원구: "안산시",
+  덕양구: "고양시",
+  일산동구: "고양시",
+  일산서구: "고양시",
+  처인구: "용인시",
+  기흥구: "용인시",
+  수지구: "용인시",
+};
+
+export function isGyeonggiCity(cityLabelOrCode: string | null | undefined): boolean {
+  if (!cityLabelOrCode) return false;
+  return cityLabelOrCode === "경기도" || cityLabelOrCode === "경기";
+}
+
+/** 경기: 구명을 시로 정규화. 그 외·이미 시면 그대로 */
+export function normalizeRegionDistrict(
+  district: string | null | undefined,
+  regionCity?: string | null
+): string | null {
+  if (!district?.trim()) return null;
+  const d = district.trim();
+  if (regionCity && !isGyeonggiCity(regionCity)) return d;
+  // regionCity 없어도 경기 구 맵에 있으면 시로
+  return GYEONGGI_GU_TO_SI[d] ?? d;
+}
+
+/** 필터 선택값(시)과 공고 region_district(시 또는 구) 일치 */
+export function districtMatchesFilter(
+  activityDistrict: string | null | undefined,
+  selected: string,
+  regionCity?: string | null
+): boolean {
+  if (!activityDistrict) return false;
+  if (activityDistrict === selected) return true;
+  if (!isGyeonggiCity(regionCity) && regionCity != null) return false;
+  const normalized = normalizeRegionDistrict(activityDistrict, regionCity ?? "경기도");
+  return normalized === selected;
+}
+
+/** DB/쿼리용: 선택 지역과 매칭되는 region_district 값 목록 (경기 시 → 시+하위구) */
+export function districtFilterValues(
+  selected: string,
+  regionCity?: string | null
+): string[] {
+  const values = new Set<string>([selected]);
+  if (isGyeonggiCity(regionCity) || Object.values(GYEONGGI_GU_TO_SI).includes(selected)) {
+    for (const [gu, si] of Object.entries(GYEONGGI_GU_TO_SI)) {
+      if (si === selected) values.add(gu);
+    }
+  }
+  return [...values];
+}
+

@@ -173,9 +173,12 @@ export default function HomePage() {
   }
 
   const upcomingItems = calendar?.items ? getUpcomingAppliedItems(calendar.items) : [];
-  const nickname = isGuest
-    ? "오육이"
-    : (me?.profile?.nickname?.replace(/님$/, "") ?? "오육이");
+  // 로딩 중에는 게스트 "오육이"로 깜빡이지 않음 — SCR-001 닉네임 연동
+  const nickname = !authReady
+    ? "회원"
+    : isGuest
+      ? "오육이"
+      : (me?.profile?.nickname?.replace(/님$/, "") || "회원");
   const cityLabel = onboarding?.region_city
     ? getCityByCode(onboarding.region_city)?.label
     : null;
